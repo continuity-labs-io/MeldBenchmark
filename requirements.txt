@@ -1,0 +1,8 @@
+pandas
+pyarrow
+zarr
+fsspec
+requests
+ruff
+pre-commit
+scikit-learn
