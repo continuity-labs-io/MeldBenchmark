@@ -1,123 +1,94 @@
-"""
-CHRONOS Sim2Real Builder
-
-This script generates a synthetic, multi-scale biological dataset simulating
-the trajectory of cellular systems (organoids) heading toward a catastrophic 
-collapse (a bifurcation point or crash).
-
-The generated data is exported as an `.npz` file containing three distinct scales:
-- Scale 1 (Sparse Telemetry): A 14-D timeseries representing biological sensors 
-  (RNA levels and GEVIs/voltage sensors) that spike around the crash event. 
-  It is masked with NaNs to simulate 99% sparsity (optical hardware limits).
-- Scale 2 (Phase Tensor): A 100-D continuous timeseries representing the raw tracking 
-  fluid dynamics or non-linear oscillator drift of the cells over 72 hours.
-- Scale 3 (Terminal Target): A 20,000-D vector representing the final high-resolution 
-  transcriptomic state (scRNA-seq with dropout) of the system at the endpoint.
-"""
-
 import numpy as np
 import pandas as pd
-from sklearn.decomposition import PCA
-import os
 
+def generate_chronos_sim2real_stub(total_minutes=15, crash_minute=10):
+    """
+    CHRONOS Xi-114 Sim2Real Engine
+    Generates a 15-minute multi-scale tensor for 1 cell.
+    Demonstrates the Hierarchical Entrainment Crash.
+    """
+    print("Booting Xi-114 Physics Engine...")
+    
+    # 1. TIME CONSTANTS (The Multi-Scale Problem)
+    burst_freq_hz = 500
+    burst_duration_sec = 4.5
+    frames_per_burst = int(burst_duration_sec * burst_freq_hz) # 2250 frames per burst
+    interval_min = 5
+    total_intervals = total_minutes // interval_min # 3 intervals in 15 mins
+    
+    time_ms = []
+    current_time = 0.0
+    for _ in range(total_intervals):
+        # Generate the exact 4.5-second burst window
+        burst_times = np.linspace(current_time, current_time + (burst_duration_sec * 1000), frames_per_burst, endpoint=False)
+        time_ms.extend(burst_times)
+        current_time += (interval_min * 60 * 1000) # Advance 5 mins
+        
+    df = pd.DataFrame({'Time_ms': time_ms})
+    df['Minute'] = df['Time_ms'] / 60000.0
+    total_rows = len(df)
+    
+    # ---------------------------------------------------------
+    # [TASK 1] SIGMA (Phase Structure - 100D) 
+    # ML TEAM: Replace random drift with CZ Biohub real PCA embeddings
+    # ---------------------------------------------------------
+    print("Generating Sigma (100D)...")
+    sigma_cols = [f'Sigma_PC{i:03d}' for i in range(1, 101)]
+    # Synthetic: smooth drift, accelerating after crash
+    drift = np.cumsum(np.random.normal(0, 0.005, (total_rows, 100)), axis=0)
+    crash_penalty = np.where(df['Minute'].values[:, None] >= crash_minute, -0.02, 0)
+    sigma_df = pd.DataFrame(drift + crash_penalty, columns=sigma_cols)
 
-def build_vorganoid_tensor(use_real_ctc_data=False, ctc_csv_path="ctc_tracks.csv"):
-    np.random.seed(42)
-    print("Booting CHRONOS Sim2Real Oracle Engine...")
+    # ---------------------------------------------------------
+    # [TASK 2] OMEGA (Voltage - 2D)
+    # ML TEAM: Replace with Michael Lin ASAP6c/mScarlet3 real trace distributions
+    # ---------------------------------------------------------
+    print("Generating Omega (2D)...")
+    # Red Baseline (Stable)
+    omega_red = np.random.normal(1.0, 0.01, total_rows)
+    
+    # Green Active (Variance Explosion at crash)
+    is_crashing = df['Minute'] >= crash_minute
+    # Jitter spikes from 0.05 to 0.50 (10x Variance Explosion)
+    jitter = np.where(is_crashing, np.random.normal(0, 0.50, total_rows), np.random.normal(0, 0.05, total_rows))
+    omega_grn = 1.0 + jitter
+    omega_df = pd.DataFrame({'Omega_VoltRed': omega_red, 'Omega_VoltGrn': omega_grn})
 
-    # --- TIME DIMENSIONS ---
-    # 72 hours at 1-minute resolution = 4320 discrete time-steps
-    TOTAL_STEPS = 4320
-    CRASH_STEP = int(TOTAL_STEPS * (61.4 / 72.0)) # The exact Bifurcation Point
+    # ---------------------------------------------------------
+    # [TASK 3] PSI (RNA Software - 12D)
+    # ML TEAM: Replace Poisson generator with Gao/Wyss-Coray real scRNA-seq counts
+    # ---------------------------------------------------------
+    print("Generating Psi (12D)...")
+    psi_cols = ['Psi_NFE2L2', 'Psi_TP53', 'Psi_CDKN2A', 'Psi_TREM2', 'Psi_APOE', 'Psi_IL6', 
+                'Psi_GFAP', 'Psi_MAPT', 'Psi_NANOG', 'Psi_CASP3', 'Psi_CAS13', 'Psi_GAPDH']
+    
+    # Fill with NaNs (The shutter is closed 99% of the time)
+    psi_df = pd.DataFrame(np.nan, index=df.index, columns=psi_cols)
+    
+    # Only sample at the very first frame of each 5-min burst
+    sample_indices = np.arange(0, total_rows, frames_per_burst)
+    
+    for idx in sample_indices:
+        minute = df.loc[idx, 'Minute']
+        if minute < crash_minute:
+            # Healthy baseline (Normal Poisson counts)
+            psi_df.loc[idx, psi_cols] = np.random.poisson(lam=5, size=12)
+        else:
+            # Transcriptomic Hysteresis (Panic genes get stuck ON)
+            psi_df.loc[idx, psi_cols] = np.random.poisson(lam=5, size=12)
+            # TP53, IL6, and CASP3 spike massively
+            psi_df.loc[idx, ['Psi_TP53', 'Psi_IL6', 'Psi_CASP3']] = np.random.poisson(lam=50, size=3)
 
-    # --- 1. THE BASE REALITY (100-D PHASE TENSOR) ---
-    if use_real_ctc_data and os.path.exists(ctc_csv_path):
-        print("Ingesting Real Biology: Parsing Cell Tracking Challenge CSV...")
-        # Format expectation: [Time, Cell_ID, Z, Y, X]
-        df = pd.read_csv(ctc_csv_path, names=['Time', 'Cell_ID', 'Z', 'Y', 'X'])
-        pivot_df = df.pivot(index='Time', columns='Cell_ID', values=['Z', 'Y', 'X']).ffill().fillna(0)
-        raw_tracks = pivot_df.values
+    # Reorder for clean UX
+    cols = ['Time_ms', 'Minute', 'Omega_VoltGrn', 'Omega_VoltRed'] + psi_cols + sigma_cols
+    df = pd.concat([df, omega_df, psi_df, sigma_df], axis=1)[cols]
+    
+    print(f"Success! Generated Sim2Real Tensor: {total_rows} rows x {len(cols)} columns.")
+    return df
 
-        print("Compressing raw tracking fluid dynamics to 100-D Phase Tensor via PCA...")
-        pca = PCA(n_components=100)
-        phase_100d = pca.fit_transform(raw_tracks)
-        # Note: In a real run, you interpolate phase_100d to exactly TOTAL_STEPS
+# Execute the engine
+chronos_tensor = generate_chronos_sim2real_stub()
 
-    else:
-        print("Generating Math Proxy: 100-D Coupled Non-Linear Oscillators...")
-        # Proxy: Langevin active-matter drifting towards a pitchfork bifurcation
-        phase_100d = np.zeros((TOTAL_STEPS, 100))
-        r_vals = np.linspace(-2.0, 1.0, TOTAL_STEPS) # Control parameter
-
-        for t in range(1, TOTAL_STEPS):
-            x = phase_100d[t-1]
-            r = r_vals[t]
-
-            # Non-linear drift (dx = rx - x^3) + Active Matter Noise
-            dx = (r * x - x**3) * 0.1 
-            noise = np.random.normal(0, 0.05, 100)
-
-            # Post-crash, the physical variance explodes (organelles shatter)
-            if t > CRASH_STEP:
-                noise *= (1.0 + 5.0 * ((t - CRASH_STEP) / TOTAL_STEPS))
-
-            phase_100d[t] = x + dx + noise
-
-    # --- 2. THE SYNTHETIC OVERLAY (14-D CHEMICAL/BIOELECTRIC ANCHORS) ---
-    print("Synthesizing 14-D Telemetry Anchors...")
-    telemetry_14d = np.zeros((TOTAL_STEPS, 14))
-
-    for t in range(TOTAL_STEPS):
-        base_signal = np.random.poisson(lam=2.0, size=14) * 0.1
-
-        # Pre-Crash Wobble: RNA sensors (0-11) spike 2-3 hours BEFORE the crash
-        if CRASH_STEP - 180 < t < CRASH_STEP:
-            base_signal[0:12] += np.random.poisson(lam=10.0, size=12) * 0.5
-
-        # Voltage Crash: GEVIs (12-13) exponentially decay AFTER the crash
-        if t >= CRASH_STEP:
-            base_signal[12:14] += np.random.exponential(scale=5.0, size=2)
-
-        telemetry_14d[t] = base_signal
-
-    # --- 3. THE CHRONOS MASK (5-MINUTE SPARSITY) ---
-    print("Applying Optical Hardware Mask (99% Sparsity)...")
-    # 5-minute sampling = 1 flash every 5 steps
-    MASK_INTERVAL = 5 
-    mask = np.zeros(TOTAL_STEPS, dtype=bool)
-    mask[::MASK_INTERVAL] = True
-
-    masked_telemetry = np.copy(telemetry_14d)
-    masked_telemetry[~mask] = np.nan # Force NaNs to break autoregressive Transformers
-
-    # --- 4. THE TERMINAL TARGET (20,000-D VISIUM HD) ---
-    print("Generating 20,000-D Terminal Endpoint...")
-    final_state = phase_100d[-1]
-    projection = np.random.randn(100, 20000) * 0.01
-    endpoint_20k = np.dot(final_state, projection)
-
-    # Biological scRNA-seq dropout (80% zeros)
-    dropout = np.random.rand(20000) > 0.8
-    endpoint_20k[dropout] = 0.0
-
-    # --- 5. EXPORT THE TENSOR ---
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    dataset_dir = os.path.join(project_root, "dataset")
-    os.makedirs(dataset_dir, exist_ok=True)
-    out_path = os.path.join(dataset_dir, "chronos_oracle_level1.npz")
-    np.savez_compressed(
-        out_path,
-        time_steps=np.arange(TOTAL_STEPS),
-        phase_100d=phase_100d,
-        telemetry_14d=masked_telemetry,
-        endpoint_20k=endpoint_20k,
-        ground_truth_crash=np.array([CRASH_STEP]) # The DAB Target (Secret)
-    )
-
-    print(f"\n[+] Success. CHRONOS Tensor forged: {out_path}")
-    print(f"    Scale 1 (Sparse Telemetry): {masked_telemetry.shape} (Masked with NaNs)")
-    print(f"    Scale 2 (Phase Tensor): {phase_100d.shape}")
-    print(f"    Scale 3 (Terminal Target): {endpoint_20k.shape}")
-
-if __name__ == "__main__":
-    build_vorganoid_tensor()
+# Save a snapshot so the ML team can visualize the NaN gaps
+chronos_tensor.head(2255).to_csv("dataset/CHRONOS_Xi114_Sim2Real_Stub.csv", index=False)
+print("Saved to dataset/CHRONOS_Xi114_Sim2Real_Stub.csv")
