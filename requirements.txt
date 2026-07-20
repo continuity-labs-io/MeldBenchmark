@@ -12,5 +12,6 @@ requests
 ruff
 scikit-learn
 tifffile
+timm
 torch
 zarr
