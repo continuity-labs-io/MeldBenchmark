@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 
-def generate_chronos_sim2real_stub(total_minutes=15, crash_minute=10):
+def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     """
-    CHRONOS Xi-114 Sim2Real Engine
+    MELD Xi-114 Sim2Real Engine
     Generates a 15-minute multi-scale tensor for 1 cell.
     Demonstrates the Hierarchical Entrainment Crash.
     """
@@ -87,8 +87,8 @@ def generate_chronos_sim2real_stub(total_minutes=15, crash_minute=10):
     return df
 
 # Execute the engine
-chronos_tensor = generate_chronos_sim2real_stub()
+meld_tensor = generate_meld_sim2real_stub()
 
 # Save a snapshot so the ML team can visualize the NaN gaps
-chronos_tensor.head(2255).to_csv("dataset/CHRONOS_Xi114_Sim2Real_Stub.csv", index=False)
-print("Saved to dataset/CHRONOS_Xi114_Sim2Real_Stub.csv")
+meld_tensor.head(2255).to_csv("dataset/MELD_Xi114_Sim2Real_Stub.csv", index=False)
+print("Saved to dataset/MELD_Xi114_Sim2Real_Stub.csv")

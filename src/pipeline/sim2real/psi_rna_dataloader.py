@@ -6,7 +6,7 @@ import pandas as pd
 class PsiTranscriptomicLoader:
     def __init__(self, crash_minute=10):
         """
-        CHRONOS Psi (Genetic Software) Dataloader V1
+        MELD Psi (Genetic Software) Dataloader V1
         Scaffold for ingesting static scRNA-seq .h5ad files, isolating the 12 Waddington Anchors,
         and projecting them into a continuous live-cell Poisson time-series.
         """
@@ -87,7 +87,7 @@ class PsiTranscriptomicLoader:
 # EXECUTION (Drop this in the Jupyter Notebook)
 # ==========================================
 if __name__ == "__main__":
-    print("Initializing CHRONOS Master Clock...")
+    print("Initializing MELD Master Clock...")
     master_clock_ms = []
     for minute in [0, 5, 10, 15]:
         burst = np.linspace(minute * 60000, minute * 60000 + 4500, 2250)

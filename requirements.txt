@@ -1,9 +1,10 @@
-causal-conv1d
 fsspec
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
+ipykernel
 mamba-ssm-macos
+matplotlib
 numpy
 pandas
 pre-commit

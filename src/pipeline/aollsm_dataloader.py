@@ -4,7 +4,7 @@ import tifffile
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 
-class ChronosTemporalDataset(Dataset):
+class MeldTemporalDataset(Dataset):
     def __init__(self, data_dir, sequence_length=10, transform=None):
         """
         Loads sequential TIFF stacks into a 4D spatiotemporal tensor (T, Z, Y, X).
@@ -195,11 +195,11 @@ class AOLLSMDataset(Dataset):
 if __name__ == "__main__":
     import time
     
-    # 1. Test original ChronosTemporalDataset if path is present (fallback to dataset/raw_tiffs if needed)
+    # 1. Test original MeldTemporalDataset if path is present (fallback to dataset/raw_tiffs if needed)
     raw_tiffs_dir = "./dataset/raw_tiffs"
     if os.path.exists(raw_tiffs_dir):
-        print(f"\n--- Testing ChronosTemporalDataset on {raw_tiffs_dir} ---")
-        dataset_original = ChronosTemporalDataset(data_dir=raw_tiffs_dir, sequence_length=10)
+        print(f"\n--- Testing MeldTemporalDataset on {raw_tiffs_dir} ---")
+        dataset_original = MeldTemporalDataset(data_dir=raw_tiffs_dir, sequence_length=10)
         dataloader_original = DataLoader(dataset_original, batch_size=1, shuffle=False)
         for batch in dataloader_original:
             print(f"Loaded Batch Shape [Batch, Channel, Time, Z, Y, X]: {batch.shape}")

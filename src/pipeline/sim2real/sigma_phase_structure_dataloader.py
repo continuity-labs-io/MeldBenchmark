@@ -6,7 +6,7 @@ from scipy.interpolate import interp1d
 class SigmaPhaseLoader:
     def __init__(self, target_components=100):
         """
-        CHRONOS Sigma (Phase Structure) Dataloader V1
+        MELD Sigma (Phase Structure) Dataloader V1
         Scaffold for streaming Quantitative Phase Imaging (QPI) from cloud storage,
         extracting single-cell super-voxels, and compressing to 100D latent vectors.
         """
@@ -89,9 +89,9 @@ class SigmaPhaseLoader:
 # EXECUTION (Drop this in the Jupyter Notebook)
 # ==========================================
 if __name__ == "__main__":
-    # 1. Boot the Master CHRONOS Clock
+    # 1. Boot the Master MELD Clock
     # Simulating 15 minutes. A 500Hz burst (2ms) for 4.5 seconds every 5 minutes.
-    print("Initializing CHRONOS Master Clock...")
+    print("Initializing MELD Master Clock...")
     master_clock_ms = []
     for minute in [0, 5, 10, 15]:
         # 4.5 seconds of 500Hz = 2250 frames per burst

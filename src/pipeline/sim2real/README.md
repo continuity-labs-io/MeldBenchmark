@@ -1,8 +1,8 @@
-# CHRONOS Data Pipeline: The Sim2Real Bridge
+# MELD Data Pipeline: The Sim2Real Bridge
 
 Standard computational biology trains discrete ML models (like Transformers) on dead cells to predict end-states. It is the equivalent of trying to understand a plane crash by looking at the debris. 
 
-Project CHRONOS is building a **Continuous-Time Biological Flight Data Recorder**. We are engineering a State-Space AI to predict the exact chronological minute a living human brain network crosses the thermodynamic point of no return into senescence. 
+Project MELD is building a **Continuous-Time Biological Flight Data Recorder**. We are engineering a State-Space AI to predict the exact chronological minute a living human brain network crosses the thermodynamic point of no return into senescence. 
 
 Because the full optical hardware pipeline is still being assembled, this directory houses the **Simulation-to-Reality (Sim2Real) Bridge**. We have scaffolded the exact multi-scale tensor our hardware will produce, and we need data engineers to swap our synthetic math with empirical proxy datasets.
 
@@ -35,7 +35,7 @@ Inside this directory, you will find three dataloader scaffolds. They currently 
 Run the master Sim2Real builder to generate a synthetic baseline tensor:
 
 ```bash
-python data_pipeline/chronos_sim2real_builder.py
+python data_pipeline/meld_sim2real_builder.py
 ```
 
-This will output `dataset/CHRONOS_Xi114_Sim2Real_Stub.csv`. Look at the output. You will immediately see the multi-scale time problem (500Hz data living next to massive NaN gaps). Standard Transformers will OOM-crash on this (see baselines/transformer.ipynb). Welcome to continuous-time biology.
+This will output `dataset/MELD_Xi114_Sim2Real_Stub.csv`. Look at the output. You will immediately see the multi-scale time problem (500Hz data living next to massive NaN gaps). Standard Transformers will OOM-crash on this (see baselines/transformer.ipynb). Welcome to continuous-time biology.

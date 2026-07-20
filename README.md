@@ -1,4 +1,4 @@
-# ChronosBenchmark Data Inspector
+# MeldBenchmark
 
 Insert manifesto here.
 
@@ -12,7 +12,7 @@ We use `mamba` and `uv` for lightning-fast dependency management.
    ```
 2. Activate the environment:
    ```bash
-   mamba activate chronos
+   mamba activate meld
    ```
 3. Install dependencies:
    ```bash

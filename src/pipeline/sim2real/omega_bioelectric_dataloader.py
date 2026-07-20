@@ -5,7 +5,7 @@ import scipy.signal as signal
 class OmegaBioelectricLoader:
     def __init__(self, sample_rate_hz=500, crash_minute=10):
         """
-        CHRONOS Omega (Bioelectric) Dataloader V1
+        MELD Omega (Bioelectric) Dataloader V1
         Scaffold for ingesting high-speed kilohertz voltage imaging (GEVI) traces,
         applying ratiometric motion-cancellation, and detecting Variance Explosions.
         """
@@ -73,7 +73,7 @@ class OmegaBioelectricLoader:
 
     def align_to_master_clock(self, df_omega, master_time_ms):
         """
-        Extracts the exact 4.5-second micro-bursts to match the CHRONOS timing.
+        Extracts the exact 4.5-second micro-bursts to match the MELD timing.
         """
         df_omega['Time_ms'] = master_time_ms
         # Reorder columns
@@ -83,7 +83,7 @@ class OmegaBioelectricLoader:
 # EXECUTION (Drop this in the Jupyter Notebook)
 # ==========================================
 if __name__ == "__main__":
-    print("Initializing CHRONOS Master Clock (500Hz Bursts)...")
+    print("Initializing MELD Master Clock (500Hz Bursts)...")
     master_clock_ms = []
     time_minutes = []
     

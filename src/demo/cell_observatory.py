@@ -9,7 +9,7 @@ def benchmark_data_08():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Initiating Data 08 Telemetry Benchmark on: {device.upper()}\n")
     
-    # CHRONOS Data 08 Architecture: 114 Dimensions (100 Phase + 14 Chem)
+    # MELD Data 08 Architecture: 114 Dimensions (100 Phase + 14 Chem)
     d_model = 114  
     batch_size = 1 
     
@@ -45,7 +45,7 @@ def benchmark_data_08():
             else:
                 t_mem = "FAILED"
                 
-        # 2. Test Mamba SSM (Your CHRONOS proxy)
+        # 2. Test Mamba SSM (Your MELD proxy)
         try:
             if device == "cuda":
                 torch.cuda.reset_peak_memory_stats()
