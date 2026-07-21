@@ -5,3 +5,19 @@ dependencies:
   - python=3.11
   - pip
   - uv
+  - pandas
+  - pyarrow
+  - pytorch
+  - numpy
+  - tifffile
+  - google-api-python-client
+  - google-auth-httplib2
+  - google-auth-oauthlib
+  - zarr
+  - fsspec
+  - requests
+  - scikit-learn
+  - pip:
+    - torch
+    - mamba-ssm-macos
+    - timm
