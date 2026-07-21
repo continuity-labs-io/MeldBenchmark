@@ -18,6 +18,10 @@ class ThermodynamicMetrics:
         time_steps = z_sequence.shape[0]
         cvi_scores = []
 
+        # Graceful fallback if sequence is too short
+        if time_steps < window_size:
+            return [0.0] * max(1, time_steps)
+
         for t in range(window_size, time_steps + 1):
             z_win = z_sequence[t-window_size:t, :]
             
@@ -30,7 +34,7 @@ class ThermodynamicMetrics:
             cvi = (self.alpha * var_t) + (self.beta * ar1_t)
             cvi_scores.append(cvi)
 
-        # Pad initial frames
+        # Pad initial frames to maintain temporal sequence length
         return [cvi_scores[0]] * (window_size - 1) + cvi_scores
 
     def calculate_dab(self, z_sequence):
@@ -68,10 +72,21 @@ class ThermodynamicMetrics:
             
         return dab_scores
         
-    def calculate_hysteresis(self, z_forward, z_rescue):
+    def calculate_hysteresis(self, z_stress, z_rescue):
         """
-        Transcriptomic Hysteresis
-        Calculates the topological area between the stress path and rescue path.
-        (Punted to Backlog Tier 2: requires a simulated 'rescue' rollout phase).
+        Transcriptomic / Morphological Hysteresis
+        Calculates the topological area trapped between the stress path and rescue path.
+        Hysteresis = \oint \vec{x}(p) dp
         """
-        pass
+        # Ensure temporal lengths match for integration
+        min_steps = min(z_stress.shape[0], z_rescue.shape[0])
+        path_down = z_stress[:min_steps, :]
+        path_up = z_rescue[:min_steps, :]
+        
+        # Calculate the Euclidean distance between the paths at every time step
+        path_divergence = torch.norm(path_down - path_up, dim=1)
+        
+        # Integrate the area under the divergence curve using the Trapezoidal Rule
+        hysteresis_area = torch.trapz(path_divergence).item()
+        
+        return hysteresis_area
