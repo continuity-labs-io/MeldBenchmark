@@ -37,56 +37,57 @@ class ThermodynamicMetrics:
         # Pad initial frames to maintain temporal sequence length
         return [cvi_scores[0]] * (window_size - 1) + cvi_scores
 
-    def calculate_dab(self, z_sequence):
+    def calculate_dab(self, z_sequence, window_size=4):
         """
-        Distance-to-Absorbing-Boundary (DAB)
-        Empirically approximates the Jacobian of the latent transition (J = dz_{t+1} / dz_t).
-        Extracts the dominant eigenvalue using Power Iteration.
-        As the eigenvalue -> 1.0, the attractor basin flattens (Saddle-Node Bifurcation).
+        Distance-to-Absorbing-Boundary (DAB) via Dynamic Mode Decomposition (DMD)
+        Approximates the local Jacobian A where Z_{future} = Z_{past} A
+        Extracts the dominant eigenvalue. As eigenvalue -> 1.0, DAB -> 0.0 (Crash).
         """
         time_steps = z_sequence.shape[0]
-        dab_scores = [1.0] # Starts at healthy 1.0 (max distance from cliff)
+        dab_scores = [1.0] * window_size # Start healthy
         
-        for t in range(1, time_steps):
-            v_in = z_sequence[t-1, :].unsqueeze(0)   # [1, Embed_Dim]
-            v_out = z_sequence[t, :].unsqueeze(0)    # [1, Embed_Dim]
+        if time_steps <= window_size:
+            return [1.0] * time_steps
+
+        for t in range(window_size, time_steps):
+            X = z_sequence[t-window_size : t]       # Past states
+            Y = z_sequence[t-window_size+1 : t+1]   # Future states
             
-            # Empirical low-rank approximation of the Jacobian
-            v_in_norm = F.normalize(v_in, dim=1)
-            v_out_norm = F.normalize(v_out, dim=1)
-            J_approx = torch.matmul(v_out_norm.T, v_in_norm) # [Embed_Dim, Embed_Dim]
+            # We want A such that X @ A = Y. 
+            # Using SVD on X to find the pseudoinverse efficiently: X = U @ S @ Vh
+            U, S, Vh = torch.linalg.svd(X, full_matrices=False)
             
-            # Calculate the dominant eigenvalue using fast power iteration
-            num_iters = 5
-            b_k = torch.randn(J_approx.shape[1], 1).to(z_sequence.device)
-            for _ in range(num_iters):
-                b_k1 = torch.matmul(J_approx, b_k)
-                b_k = b_k1 / (torch.norm(b_k1) + 1e-8)
-                
-            # Rayleigh quotient gives the dominant eigenvalue
-            eigenvalue = torch.matmul(b_k.T, torch.matmul(J_approx, b_k)) / (torch.matmul(b_k.T, b_k) + 1e-8)
+            # The non-zero eigenvalues of the full [Embed_Dim, Embed_Dim] operator A 
+            # are exactly the eigenvalues of the smaller [window_size, window_size] projected matrix A_tilde.
+            S_inv = torch.diag(1.0 / (S + 1e-8))
+            A_tilde = S_inv @ U.T @ Y @ Vh.T 
             
-            # The mathematical distance to the crash
-            dab = 1.0 - abs(eigenvalue.item())
+            # Extract eigenvalues
+            eigenvalues = torch.linalg.eigvals(A_tilde)
+            max_eig = torch.max(torch.abs(eigenvalues)).item()
+            
+            # DAB is the distance from the critical instability boundary (1.0)
+            dab = 1.0 - min(max_eig, 1.0)
             dab_scores.append(max(0.0, dab))
             
         return dab_scores
         
-    def calculate_hysteresis(self, z_stress, z_rescue):
+    def calculate_hysteresis(self, z_baseline, z_perturbed):
         """
-        Transcriptomic / Morphological Hysteresis
-        Calculates the topological area trapped between the stress path and rescue path.
-        Hysteresis = \oint \vec{x}(p) dp
+        Morphological Hysteresis
+        Calculates the topological area between the stress path and rescue path.
         """
-        # Ensure temporal lengths match for integration
-        min_steps = min(z_stress.shape[0], z_rescue.shape[0])
-        path_down = z_stress[:min_steps, :]
-        path_up = z_rescue[:min_steps, :]
+        min_steps = min(z_baseline.shape[0], z_perturbed.shape[0])
+        if min_steps < 2:
+            return 0.0, []
+            
+        path_down = z_baseline[:min_steps, :]
+        path_up = z_perturbed[:min_steps, :]
         
-        # Calculate the Euclidean distance between the paths at every time step
+        # Euclidean distance between the paths at every time step
         path_divergence = torch.norm(path_down - path_up, dim=1)
         
         # Integrate the area under the divergence curve using the Trapezoidal Rule
         hysteresis_area = torch.trapz(path_divergence).item()
         
-        return hysteresis_area
+        return hysteresis_area, path_divergence.tolist()
