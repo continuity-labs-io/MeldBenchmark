@@ -39,39 +39,32 @@ class ThermodynamicMetrics:
         return [cvi_scores[0]] * (window_size - 1) + cvi_scores
 
     def calculate_dab(self, z_sequence, window_size=4):
-        """
-        Distance-to-Absorbing-Boundary (DAB) via Dynamic Mode Decomposition (DMD)
-        Approximates the local Jacobian A where Z_{future} = Z_{past} A
-        Extracts the dominant eigenvalue. As eigenvalue -> 1.0, DAB -> 0.0 (Crash).
-        """
-        time_steps = z_sequence.shape[0]
-        dab_scores = [1.0] * window_size  # Start healthy
+        import math
 
+        time_steps = z_sequence.shape[0]
+        dab_scores = [1.0] * window_size
         if time_steps <= window_size:
             return [1.0] * time_steps
 
         for t in range(window_size, time_steps):
-            X = z_sequence[t - window_size : t]  # Past states
-            Y = z_sequence[t - window_size + 1 : t + 1]  # Future states
+            X = z_sequence[t - window_size : t]
+            Y = z_sequence[t - window_size + 1 : t + 1]
 
-            # We want A such that X @ A = Y.
-            # Using SVD on X to find the pseudoinverse efficiently: X = U @ S @ Vh
             U, S, Vh = torch.linalg.svd(X, full_matrices=False)
 
-            # The non-zero eigenvalues of the full [Embed_Dim, Embed_Dim] operator A
-            # are exactly the eigenvalues of the smaller [window_size, window_size] projected
-            # matrix A_tilde.
-            S_inv = torch.diag(S / (S**2 + 1e-4))
-            A_tilde = S_inv @ U.T @ Y @ Vh.T
+            # TRUNCATED SVD: Keep only significant singular values
+            rank = max(1, (S > 1e-5 * S[0]).sum().item())
+            U_k = U[:, :rank]
+            S_inv_k = torch.diag(1.0 / S[:rank])
+            Vh_k = Vh[:rank, :]
 
-            # Extract eigenvalues
+            A_tilde = S_inv_k @ U_k.T @ Y @ Vh_k.T
             eigenvalues = torch.linalg.eigvals(A_tilde)
             max_eig = torch.max(torch.abs(eigenvalues)).item()
 
-            # DAB is bounded [0, 1]. A stable system has max_eig near 1.0.
-            dab = 1.0 / (1.0 + abs(max_eig - 1.0))
-            dab_scores.append(dab)
-
+            # Bound DAB smoothly [0, 1] using an exponential envelope
+            dab = math.exp(-0.5 * abs(max_eig - 1.0))
+            dab_scores.append(max(0.0, dab))
         return dab_scores
 
     def calculate_hysteresis(self, z_baseline, z_perturbed):

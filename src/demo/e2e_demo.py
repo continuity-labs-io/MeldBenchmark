@@ -340,6 +340,12 @@ def main():
         )
         gevi_healthy = gevi_injector(raw_batch.size(0), raw_batch.size(1), device, is_healthy=True)
 
+        # Normalize the latent spaces before fusion so the GEVI signal doesn't artificially outweigh the Optics
+        latent_anomalous = F.normalize(latent_anomalous, p=2, dim=-1)
+        latent_healthy = F.normalize(latent_healthy, p=2, dim=-1)
+        gevi_anomalous = F.normalize(gevi_anomalous, p=2, dim=-1)
+        gevi_healthy = F.normalize(gevi_healthy, p=2, dim=-1)
+
         latent_fused_anomalous = torch.cat([latent_anomalous, gevi_anomalous], dim=-1)
         latent_fused_healthy = torch.cat([latent_healthy, gevi_healthy], dim=-1)
 
