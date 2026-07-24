@@ -30,7 +30,7 @@ from src.metrics.hardware_monitor import HardwareMonitor
 from src.metrics.thermodynamics import ThermodynamicMetrics
 from src.models.gevi_injector import GEVIInjector
 from src.models.spatial_compressor import SpatialCompressor
-from src.models.vector_seq_engine import VectorSeqEngine
+from src.models.state_space_engine import StateSpaceEngine
 from src.pipeline.aollsm_dataloader import AOLLSMDataset
 
 warnings.filterwarnings("ignore")
@@ -292,11 +292,13 @@ def main():
 
     print("[*] Ingesting AO-LLSM Optical Telemetry...")
     data_dir = os.path.join(project_root, "dataset/raw_tiffs")
+
     SEQUENCE_LENGTH = 10
+    CROP_SIZE = (128, 128, 128)
 
     # Initialize the dataset
     dataset = AOLLSMDataset(
-        data_dir=data_dir, num_frames=SEQUENCE_LENGTH, crop_size=(128, 128, 128)
+        data_dir=data_dir, num_frames=SEQUENCE_LENGTH, crop_size=CROP_SIZE
     )
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
@@ -309,28 +311,32 @@ def main():
 
     # Extract Frame 0, Channel 0 for visual inspection
     frame_0_3d = raw_batch[0, 0, 0, :, :, :]
-    plot_frame_projection(frame_0_3d, "Phase 1 Check: 2D Max-Projection (Frame 0)", "plot_1.png")
+    plot_frame_projection(frame_0_3d, "Phase 1 Check: 2D Max-Projection (Frame 0)", "00_2D_max_projection.png")
 
     print("[*] Injecting Structural Anomaly at Frame 7 (Event Boundary)...")
     experimental_batch = raw_batch.clone()
 
     # At T=7, we inject massive random noise (simulating a cell membrane rupture)
+    EVENT_BOUNDARY = 7
+    ANOMALY_MAGNITUDE = 2.0
     anomaly_noise = (
-        torch.randn_like(experimental_batch[:, 7, :, :, :, :]) * experimental_batch.max() * 2.0
+        torch.randn_like(experimental_batch[:, EVENT_BOUNDARY, :, :, :, :]) * experimental_batch.max() * ANOMALY_MAGNITUDE
     )
-    experimental_batch[:, 7, :, :, :, :] += anomaly_noise
+    experimental_batch[:, EVENT_BOUNDARY, :, :, :, :] += anomaly_noise
 
-    frame_7_3d = experimental_batch[0, 7, 0, :, :, :]
-    plot_frame_projection(frame_7_3d, "Structural Shattering (Frame 7)", "plot_2.png")
+    frame_7_3d = experimental_batch[0, EVENT_BOUNDARY, 0, :, :, :]
+    plot_frame_projection(frame_7_3d, "Structural Shattering (Frame 7)", "01_structural_shattering.png")
 
-    print("[*] Initializing CHRONOS Architecture...")
+    print("[*] Initializing MELD Architecture...")
+    OPTICAL_EMBEDDING_DIM = 768
+    GEVI_EMBEDDING_DIM = 64
     compressor = SpatialCompressor().to(device)
-    mamba_engine = VectorSeqEngine(d_model=768).to(device)
+    mamba_engine_optical = StateSpaceEngine(d_model=OPTICAL_EMBEDDING_DIM).to(device)
     gevi_injector = GEVIInjector().to(device)
-    mamba_engine_fused = VectorSeqEngine(d_model=768 + 64).to(device)
+    mamba_engine_fused = StateSpaceEngine(d_model=OPTICAL_EMBEDDING_DIM + GEVI_EMBEDDING_DIM).to(device)
 
     compressor.eval()
-    mamba_engine.eval()
+    mamba_engine_optical.eval()
     gevi_injector.eval()
     mamba_engine_fused.eval()
 
@@ -359,11 +365,11 @@ def main():
 
     print("[*] Executing Level 2: Continuous Physics Modeling (Mamba-2)...")
     with torch.no_grad():
-        scalar_loss, _ = mamba_engine(opt_anom_norm)
+        scalar_loss_optical, _ = mamba_engine_optical(opt_anom_norm)
         scalar_loss_fused, _ = mamba_engine_fused(latent_fused_anomalous)
         print(
             "    -> Continuous Trajectory Processed. Final Loss (Optics-Only): "
-            f"{scalar_loss.item():.4f}"
+            f"{scalar_loss_optical.item():.4f}"
         )
         print(
             "    -> Continuous Trajectory Processed. Final Loss (Fused): "
@@ -385,7 +391,7 @@ def main():
     dab_scores_fused = metrics.calculate_dab(z_fused_anomalous, window_size=4)
 
     print("[*] Simulating Biological Rescue & Calculating Hysteresis...")
-    z_curr = latent_fused_anomalous[:, 7:8, :]
+    z_curr = latent_fused_anomalous[:, EVENT_BOUNDARY:EVENT_BOUNDARY+1, :]
     rescue_trajectory_fused = [z_curr.squeeze(0)]
 
     with torch.no_grad():

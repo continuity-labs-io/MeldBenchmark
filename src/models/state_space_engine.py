@@ -4,19 +4,34 @@ import torch.nn.functional as F
 from mamba_ssm import Mamba
 
 
-class VectorSeqEngine(nn.Module):
+class StateSpaceEngine(nn.Module):
     """
-    VectorSeqEngine models the continuous kinetic trajectory of the biological state using a Mamba SSM.
+    StateSpaceEngine models the continuous kinetic trajectory of the biological state using 
+    a Mamba SSM.
     It implements a self-supervised Forward Predictive Coding loop.
     """
 
-    def __init__(self, d_model=768, d_state=16, d_conv=4, expand=2):
+    def __init__(self, d_model=768, expand=2, d_conv=4, d_state=16):
+        """
+        Args:
+            d_model (int): The dimension of the input feature vectors (e.g., 768 for optical).
+            expand (int): Expansion factor creating the inner dimension (width of data pathway).
+            d_conv (int): The kernel size of the local 1D convolution applied before the SSM.
+            d_state (int): The size of the hidden state / recurrent memory (depth of memory).
+        """
         super().__init__()
-        # 1. Instantiate a standard 1D Mamba block from mamba_ssm
+        # Instantiate a standard 1D Mamba block from mamba_ssm. 
+        # The internal architecture:
+        # - Expand (Linear Projection)
+        # - 1D Conv
+        # - Activation Function
+        # - Selective Scan (SSM)
+        # - Project back
         self.mamba = Mamba(d_model=d_model, d_state=d_state, d_conv=d_conv, expand=expand)
 
-        # 3. Lightweight linear projection layer to map hidden state at time t to predicted embedding at time t+1
-        self.proj = nn.Linear(d_model, d_model)
+        # Forward Predictive Coding / Latent Dynamics Prediction
+        # Maps hidden state at time t -> predicted embedding at time t+1
+        self.forward_predictor = nn.Linear(d_model, d_model)
 
     def forward(self, x):
         """
@@ -27,16 +42,17 @@ class VectorSeqEngine(nn.Module):
         Returns:
             tuple:
                 - loss (torch.Tensor): Scalar loss for backpropagation (MSE + Mean Cosine Distance)
-                - frame_distances (torch.Tensor): 1D array of frame-by-frame Cosine Distances [Time-1]
+                - frame_distances (torch.Tensor): 1D array of frame-by-frame 
+                  Cosine Distances [Time-1]
         """
-        # 2. Ingest the sequence of spatial embeddings [Batch, Time, 768]
-        # 3. Pass through Mamba block to generate contextualized hidden states
+        # Ingest the sequence of spatial embeddings [Batch, Time, 768]
+        # Pass through Mamba block to generate contextualized hidden states
         hidden_states = self.mamba(x)
 
         # Map each hidden state to a predicted embedding
-        predictions = self.proj(hidden_states)
+        predictions = self.forward_predictor(hidden_states)
 
-        # 4. Calculate predictions against actual embedding at time t+1
+        # Calculate predictions against actual embedding at time t+1
         # predictions at time t predict x at time t+1
         preds_t = predictions[:, :-1, :]  # Shape: [Batch, Time-1, 768]
         target_t = x[:, 1:, :]  # Shape: [Batch, Time-1, 768]
@@ -49,25 +65,26 @@ class VectorSeqEngine(nn.Module):
         cos_sim = F.cosine_similarity(preds_t, target_t, dim=-1)
         cos_dist = 1.0 - cos_sim
 
-        # 5. Scalar loss for backpropagation
+        # Scalar loss for backpropagation
         # We can combine MSE and the mean of the Cosine Distance
         mean_cos_dist = cos_dist.mean()
         scalar_loss = mse_loss + mean_cos_dist
 
-        # Frame-by-frame Cosine Distances: Average over the Batch dimension -> 1D array of length Time-1
+        # Frame-by-frame Cosine Distances: Average over the Batch dimension 
+        # -> 1D array of length Time-1
         frame_distances = cos_dist.mean(dim=0)
 
         return scalar_loss, frame_distances
 
 
 if __name__ == "__main__":
-    print("Testing VectorSeqEngine architecture...")
+    print("Testing StateSpaceEngine architecture...")
     # Require CUDA for mamba_ssm typically, but let's see if it works on cpu for initialization
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
 
     try:
-        model = VectorSeqEngine().to(device)
+        model = StateSpaceEngine().to(device)
 
         # Dummy input: [Batch, Time, 768]
         batch_size = 2

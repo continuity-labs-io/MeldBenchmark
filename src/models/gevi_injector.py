@@ -63,11 +63,11 @@ class GEVIInjector(nn.Module):
         if not is_healthy:
             start_idx = self.anomaly_start_frame * self.compression_ratio
             if start_idx < total_steps:
-                variance_explosion = (
+                variance_injection = (
                     torch.randn((batch_size, 1, total_steps - start_idx), device=device)
                     * self.anomaly_noise_std
                 )
-                tensor[:, :, start_idx:] += variance_explosion
+                tensor[:, :, start_idx:] += variance_injection
 
         return tensor
 
