@@ -59,17 +59,18 @@ class ThermodynamicMetrics:
             U, S, Vh = torch.linalg.svd(X, full_matrices=False)
 
             # The non-zero eigenvalues of the full [Embed_Dim, Embed_Dim] operator A
-            # are exactly the eigenvalues of the smaller [window_size, window_size] projected matrix A_tilde.
-            S_inv = torch.diag(1.0 / (S + 1e-8))
+            # are exactly the eigenvalues of the smaller [window_size, window_size] projected
+            # matrix A_tilde.
+            S_inv = torch.diag(S / (S**2 + 1e-4))
             A_tilde = S_inv @ U.T @ Y @ Vh.T
 
             # Extract eigenvalues
             eigenvalues = torch.linalg.eigvals(A_tilde)
             max_eig = torch.max(torch.abs(eigenvalues)).item()
 
-            # DAB is the distance from the critical instability boundary (1.0)
-            dab = 1.0 - min(max_eig, 1.0)
-            dab_scores.append(max(0.0, dab))
+            # DAB is bounded [0, 1]. A stable system has max_eig near 1.0.
+            dab = 1.0 / (1.0 + abs(max_eig - 1.0))
+            dab_scores.append(dab)
 
         return dab_scores
 

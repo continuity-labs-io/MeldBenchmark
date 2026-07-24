@@ -139,127 +139,19 @@ def plot_cvi_metric(cvi_scores, filename):
     plt.close()
 
 
-def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"[*] Booting MELD End-to-End Compiler on: {device.type.upper()}")
-
-    print("[*] Ingesting AO-LLSM Optical Telemetry...")
-    data_dir = os.path.join(project_root, "dataset/raw_tiffs")
-    SEQUENCE_LENGTH = 10
-
-    # Initialize the dataset
-    dataset = AOLLSMDataset(
-        data_dir=data_dir, num_frames=SEQUENCE_LENGTH, crop_size=(128, 128, 128)
-    )
-    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
-
-    # Grab the first batch
-    raw_batch = next(iter(dataloader)).to(device)
-    print(
-        f"[*] Loaded Raw Tensor Shape: {raw_batch.shape} -> "
-        "[Batch, Time, Channel, Depth, Height, Width]"
-    )
-
-    # Extract Frame 0, Channel 0 for visual inspection
-    frame_0_3d = raw_batch[0, 0, 0, :, :, :]
-    plot_frame_projection(frame_0_3d, "Phase 1 Check: 2D Max-Projection (Frame 0)", "plot_1.png")
-
-    print("[*] Injecting Structural Anomaly at Frame 7 (Event Boundary)...")
-    experimental_batch = raw_batch.clone()
-
-    # At T=7, we inject massive random noise (simulating a cell membrane rupture)
-    anomaly_noise = (
-        torch.randn_like(experimental_batch[:, 7, :, :, :, :]) * experimental_batch.max() * 2.0
-    )
-    experimental_batch[:, 7, :, :, :, :] += anomaly_noise
-
-    frame_7_3d = experimental_batch[0, 7, 0, :, :, :]
-    plot_frame_projection(frame_7_3d, "Structural Shattering (Frame 7)", "plot_2.png")
-
-    print("[*] Initializing CHRONOS Architecture...")
-    compressor = SpatialCompressor().to(device)
-    mamba_engine = VectorSeqEngine(d_model=768).to(device)
-    gevi_injector = GEVIInjector().to(device)
-    mamba_engine_fused = VectorSeqEngine(d_model=768 + 64).to(device)
-
-    compressor.eval()
-    mamba_engine.eval()
-    gevi_injector.eval()
-    mamba_engine_fused.eval()
-
-    print("[*] Executing Level 1: Spatial Compression (ViT-Base)...")
-    with torch.no_grad():
-        latent_anomalous = compressor(experimental_batch)
-        latent_healthy = compressor(raw_batch)
-        print(f"    -> Compressed Latent Sequence Shape: {latent_anomalous.shape}")
-
-        gevi_anomalous = gevi_injector(
-            experimental_batch.size(0), experimental_batch.size(1), device, is_healthy=False
-        )
-        gevi_healthy = gevi_injector(raw_batch.size(0), raw_batch.size(1), device, is_healthy=True)
-
-        latent_fused_anomalous = torch.cat([latent_anomalous, gevi_anomalous], dim=-1)
-        latent_fused_healthy = torch.cat([latent_healthy, gevi_healthy], dim=-1)
-
-    print("[*] Executing Level 2: Continuous Physics Modeling (Mamba-2)...")
-    with torch.no_grad():
-        scalar_loss, _ = mamba_engine(latent_anomalous)
-        scalar_loss_fused, _ = mamba_engine_fused(latent_fused_anomalous)
-        print(
-            "    -> Continuous Trajectory Processed. Final Loss (Optics-Only): "
-            f"{scalar_loss.item():.4f}"
-        )
-        print(
-            "    -> Continuous Trajectory Processed. Final Loss (Fused): "
-            f"{scalar_loss_fused.item():.4f}"
-        )
-
-    print("[*] Extracting Thermodynamic Metrics (CVI, DAB, Hysteresis)...")
-
-    z_anomalous = latent_anomalous[0].detach()
-    z_fused_anomalous = latent_fused_anomalous[0].detach()
-    z_fused_healthy = latent_fused_healthy[0].detach()
-    time_steps = z_anomalous.shape[0]
-
-    metrics = ThermodynamicMetrics(alpha=500.0, beta=1.0)
-    cvi_scores_optics = metrics.calculate_cvi(z_anomalous, window_size=3)
-    dab_scores_optics = metrics.calculate_dab(z_anomalous, window_size=4)
-
-    cvi_scores_fused = metrics.calculate_cvi(z_fused_anomalous, window_size=3)
-    dab_scores_fused = metrics.calculate_dab(z_fused_anomalous, window_size=4)
-
-    print("[*] Simulating Biological Rescue & Calculating Hysteresis...")
-    # Take the shattered latent state (T=7) and let Mamba autoregressively predict recovery
-    z_shattered_fused = latent_fused_anomalous[:, 7:8, :]
-    rescue_trajectory_fused = [z_shattered_fused.squeeze(0)]
-
-    z_curr = z_shattered_fused
-    with torch.no_grad():
-        for _ in range(2):  # Predict T=8 and T=9 recovery steps
-            h_state = mamba_engine_fused.mamba(z_curr)
-            z_next = mamba_engine_fused.proj(h_state[:, -1:, :])
-            rescue_trajectory_fused.append(z_next.squeeze(0))
-            z_curr = torch.cat([z_curr, z_next], dim=1)
-
-    z_rescue_path = torch.cat(rescue_trajectory_fused, dim=0)
-    z_healthy_path = z_fused_healthy[7:10, :]
-
-    hysteresis_scalar, divergence_curve = metrics.calculate_hysteresis(
-        z_healthy_path, z_rescue_path
-    )
-    print(f"    -> Thermodynamic Hysteresis (Scar Area): {hysteresis_scalar:.4f}")
-
-    print("[*] Hardware Telemetry...")
-    d_model_hw = latent_fused_anomalous.shape[-1]
-    hw_monitor = HardwareMonitor(device)
-    seq_lengths, mamba_vram, transformer_vram = hw_monitor.run_scaling_benchmark(d_model=d_model_hw)
-
-    # ==========================================
-    # THE THERMODYNAMIC SCOREBOARDS
-    # ==========================================
-    import matplotlib.pyplot as plt
-    import numpy as np
-
+def plot_thermodynamic_scoreboards(
+    time_steps,
+    dab_scores_optics,
+    dab_scores_fused,
+    cvi_scores_optics,
+    cvi_scores_fused,
+    divergence_curve,
+    hysteresis_scalar,
+    seq_lengths,
+    mamba_vram,
+    transformer_vram,
+):
+    """Generates the 4-panel thermodynamic and hardware dashboard."""
     fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1, figsize=(10, 16))
     plt.style.use("dark_background")
     time_axis = np.arange(time_steps)
@@ -382,6 +274,147 @@ def main():
     plot_path = os.path.join(output_dir, "plot_metrics.png")
     plt.savefig(plot_path)
     print(f"Saved {plot_path}")
+
+
+def main():
+    if torch.cuda.is_available():
+        device = torch.device("cuda")
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+    print(f"[*] Booting MELD End-to-End Compiler on: {device.type.upper()}")
+
+    print("[*] Ingesting AO-LLSM Optical Telemetry...")
+    data_dir = os.path.join(project_root, "dataset/raw_tiffs")
+    SEQUENCE_LENGTH = 10
+
+    # Initialize the dataset
+    dataset = AOLLSMDataset(
+        data_dir=data_dir, num_frames=SEQUENCE_LENGTH, crop_size=(128, 128, 128)
+    )
+    dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
+
+    # Grab the first batch
+    raw_batch = next(iter(dataloader)).to(device)
+    print(
+        f"[*] Loaded Raw Tensor Shape: {raw_batch.shape} -> "
+        "[Batch, Time, Channel, Depth, Height, Width]"
+    )
+
+    # Extract Frame 0, Channel 0 for visual inspection
+    frame_0_3d = raw_batch[0, 0, 0, :, :, :]
+    plot_frame_projection(frame_0_3d, "Phase 1 Check: 2D Max-Projection (Frame 0)", "plot_1.png")
+
+    print("[*] Injecting Structural Anomaly at Frame 7 (Event Boundary)...")
+    experimental_batch = raw_batch.clone()
+
+    # At T=7, we inject massive random noise (simulating a cell membrane rupture)
+    anomaly_noise = (
+        torch.randn_like(experimental_batch[:, 7, :, :, :, :]) * experimental_batch.max() * 2.0
+    )
+    experimental_batch[:, 7, :, :, :, :] += anomaly_noise
+
+    frame_7_3d = experimental_batch[0, 7, 0, :, :, :]
+    plot_frame_projection(frame_7_3d, "Structural Shattering (Frame 7)", "plot_2.png")
+
+    print("[*] Initializing CHRONOS Architecture...")
+    compressor = SpatialCompressor().to(device)
+    mamba_engine = VectorSeqEngine(d_model=768).to(device)
+    gevi_injector = GEVIInjector().to(device)
+    mamba_engine_fused = VectorSeqEngine(d_model=768 + 64).to(device)
+
+    compressor.eval()
+    mamba_engine.eval()
+    gevi_injector.eval()
+    mamba_engine_fused.eval()
+
+    print("[*] Executing Level 1: Spatial Compression (ViT-Base)...")
+    with torch.no_grad():
+        latent_anomalous = compressor(experimental_batch)
+        latent_healthy = compressor(raw_batch)
+        print(f"    -> Compressed Latent Sequence Shape: {latent_anomalous.shape}")
+
+        gevi_anomalous = gevi_injector(
+            experimental_batch.size(0), experimental_batch.size(1), device, is_healthy=False
+        )
+        gevi_healthy = gevi_injector(raw_batch.size(0), raw_batch.size(1), device, is_healthy=True)
+
+        latent_fused_anomalous = torch.cat([latent_anomalous, gevi_anomalous], dim=-1)
+        latent_fused_healthy = torch.cat([latent_healthy, gevi_healthy], dim=-1)
+
+    print("[*] Executing Level 2: Continuous Physics Modeling (Mamba-2)...")
+    with torch.no_grad():
+        scalar_loss, _ = mamba_engine(latent_anomalous)
+        scalar_loss_fused, _ = mamba_engine_fused(latent_fused_anomalous)
+        print(
+            "    -> Continuous Trajectory Processed. Final Loss (Optics-Only): "
+            f"{scalar_loss.item():.4f}"
+        )
+        print(
+            "    -> Continuous Trajectory Processed. Final Loss (Fused): "
+            f"{scalar_loss_fused.item():.4f}"
+        )
+
+    print("[*] Extracting Thermodynamic Metrics (CVI, DAB, Hysteresis)...")
+
+    z_anomalous = latent_anomalous[0].detach()
+    z_fused_anomalous = latent_fused_anomalous[0].detach()
+    z_fused_healthy = latent_fused_healthy[0].detach()
+    time_steps = z_anomalous.shape[0]
+
+    metrics = ThermodynamicMetrics(alpha=500.0, beta=1.0)
+    cvi_scores_optics = metrics.calculate_cvi(z_anomalous, window_size=3)
+    dab_scores_optics = metrics.calculate_dab(z_anomalous, window_size=4)
+
+    cvi_scores_fused = metrics.calculate_cvi(z_fused_anomalous, window_size=3)
+    dab_scores_fused = metrics.calculate_dab(z_fused_anomalous, window_size=4)
+
+    print("[*] Simulating Biological Rescue & Calculating Hysteresis...")
+    # Take the shattered latent state (T=7) and let Mamba autoregressively predict recovery
+    z_shattered_fused = latent_fused_anomalous[:, 7:8, :]
+    rescue_trajectory_fused = [z_shattered_fused.squeeze(0)]
+
+    z_curr = z_shattered_fused
+    with torch.no_grad():
+        for _ in range(8):  # Predict recovery steps
+            h_state = mamba_engine_fused.mamba(z_curr)
+            z_next = mamba_engine_fused.proj(h_state[:, -1:, :])
+            rescue_trajectory_fused.append(z_next.squeeze(0))
+            z_curr = torch.cat([z_curr, z_next], dim=1)
+
+    z_rescue_path = torch.cat(rescue_trajectory_fused, dim=0)
+
+    z_healthy_base = z_fused_healthy[7:, :]
+    pad_len = z_rescue_path.shape[0] - z_healthy_base.shape[0]
+    if pad_len > 0:
+        padding = z_healthy_base[-1:, :].repeat(pad_len, 1)
+        z_healthy_path = torch.cat([z_healthy_base, padding], dim=0)
+    else:
+        z_healthy_path = z_healthy_base[: z_rescue_path.shape[0], :]
+
+    hysteresis_scalar, divergence_curve = metrics.calculate_hysteresis(
+        z_healthy_path, z_rescue_path
+    )
+    print(f"    -> Thermodynamic Hysteresis (Scar Area): {hysteresis_scalar:.4f}")
+
+    print("[*] Hardware Telemetry...")
+    d_model_hw = latent_fused_anomalous.shape[-1]
+    hw_monitor = HardwareMonitor(device)
+    seq_lengths, mamba_vram, transformer_vram = hw_monitor.run_scaling_benchmark(d_model=d_model_hw)
+
+    plot_thermodynamic_scoreboards(
+        time_steps,
+        dab_scores_optics,
+        dab_scores_fused,
+        cvi_scores_optics,
+        cvi_scores_fused,
+        divergence_curve,
+        hysteresis_scalar,
+        seq_lengths,
+        mamba_vram,
+        transformer_vram,
+    )
 
 
 if __name__ == "__main__":
