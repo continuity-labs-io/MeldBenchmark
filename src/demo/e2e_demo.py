@@ -397,7 +397,7 @@ def main():
     with torch.no_grad():
         for _ in range(8):  # Predict T=8 to T=15 recovery steps
             h_state = mamba_engine_fused.mamba(z_curr)
-            z_next = mamba_engine_fused.proj(h_state[:, -1:, :])
+            z_next = mamba_engine_fused.forward_predictor(h_state[:, -1:, :])
             rescue_trajectory_fused.append(z_next.squeeze(0))
             z_curr = torch.cat([z_curr, z_next], dim=1)
 
