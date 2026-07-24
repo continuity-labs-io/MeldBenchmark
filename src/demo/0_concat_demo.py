@@ -272,11 +272,12 @@ def plot_thermodynamic_scoreboards(
     )
     ax4.set_xlabel("Continuous Time Context (Frames)", color="white")
     ax4.set_ylabel("Peak VRAM Allocated (MB)", color="white")
+    ax4.set_yscale("log")
     ax4.legend()
     ax4.grid(True, alpha=0.2)
 
     plt.tight_layout()
-    plot_path = os.path.join(output_dir, "plot_metrics.png")
+    plot_path = os.path.join(output_dir, "0_concat_plot_metrics.png")
     plt.savefig(plot_path)
     print(f"Saved {plot_path}")
 
@@ -311,7 +312,7 @@ def main():
 
     # Extract Frame 0, Channel 0 for visual inspection
     frame_0_3d = raw_batch[0, 0, 0, :, :, :]
-    plot_frame_projection(frame_0_3d, "Phase 1 Check: 2D Max-Projection (Frame 0)", "00_2D_max_projection.png")
+    plot_frame_projection(frame_0_3d, "Phase 1 Check: 2D Max-Projection (Frame 0)", "0_concat_00_2D_max_projection.png")
 
     print("[*] Injecting Structural Anomaly at Frame 7 (Event Boundary)...")
     experimental_batch = raw_batch.clone()
@@ -323,9 +324,6 @@ def main():
         torch.randn_like(experimental_batch[:, EVENT_BOUNDARY, :, :, :, :]) * experimental_batch.max() * ANOMALY_MAGNITUDE
     )
     experimental_batch[:, EVENT_BOUNDARY, :, :, :, :] += anomaly_noise
-
-    frame_7_3d = experimental_batch[0, EVENT_BOUNDARY, 0, :, :, :]
-    plot_frame_projection(frame_7_3d, "Structural Shattering (Frame 7)", "01_structural_shattering.png")
 
     print("[*] Initializing MELD Architecture...")
     OPTICAL_EMBEDDING_DIM = 768

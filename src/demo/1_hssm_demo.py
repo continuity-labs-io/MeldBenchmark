@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import math
+import matplotlib.pyplot as plt
+import os
 
 from src.models.state_space_engine import StateSpaceEngine
 class ToyBiologicalEnvironment:
@@ -14,7 +16,7 @@ class ToyBiologicalEnvironment:
     TODO: Output Expectation to verify:
     Question: "how does it know the pump vibration isn't a biological anomaly?" 
     - The Top Panel shows the raw drowning signal (with the pump).
-    - The Bottom Panel shows the DAB metric. It will be completely flat during 
+    - The Bottom Panel shows the Surprise metric. It will be completely flat during 
     the first 50 frames despite the massive structural wobble being fed into it, 
     proving the Fusion Core successfully zeroed it out of the predictive surprise metric.
     """
@@ -34,7 +36,7 @@ class ToyBiologicalEnvironment:
     GEVI_PUMP_AMPLITUDE = 50.0
 
     SPIKE_AMPLITUDE = 100.0
-    SPIKE_PROBABILITY_PER_WINDOW = 0.01
+    SPIKE_PROBABILITY_PER_WINDOW = 0.15
     SPIKE_WINDOW_STEPS = int(GEVI_HZ / OPTICS_HZ) # 200 steps per optic frame
     SPIKE_WIDTH_STEPS = int(GEVI_HZ * 0.001)      # 1ms spike = 20 steps
 
@@ -195,6 +197,61 @@ def train_orthogonal_veto(device):
     return gevi_compressor, mamba_engine
 
 
+def evaluate_and_plot(compressor, mamba_engine, device):
+    print("[*] Generating Inference Dashboard...")
+    env = ToyBiologicalEnvironment()
+    
+    # 2. Generate validation data
+    opt_hom, gevi_hom = env.generate_batch(1, scenario="homeostasis", device=device)
+    opt_cor, gevi_cor = env.generate_batch(1, scenario="corrosion", device=device)
+    opt_tox, gevi_tox = env.generate_batch(1, scenario="toxic_shock", device=device)
+    
+    # 3. Helper to extract frame distances (Surprise)
+    def get_dab(opt_tensor, gevi_tensor):
+        with torch.no_grad():
+            comp_gevi = compressor(gevi_tensor).transpose(1, 2)
+            fused = torch.cat([opt_tensor, comp_gevi], dim=-1)
+            _, frame_dists = mamba_engine(fused)
+        return frame_dists.cpu().numpy()
+        
+    dab_hom = get_dab(opt_hom, gevi_hom)
+    dab_cor = get_dab(opt_cor, gevi_cor)
+    dab_tox = get_dab(opt_tox, gevi_tox)
+    
+    # 4. Plotting
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 12))
+    
+    # Top Panel: The Drowning Signal
+    gevi_raw_slice = gevi_hom[0, 0, :4000].cpu().numpy()
+    t_gevi_slice = torch.arange(4000).numpy() / ToyBiologicalEnvironment.GEVI_HZ
+    ax1.plot(t_gevi_slice, gevi_raw_slice, color='cyan', alpha=0.8)
+    ax1.set_title("The Drowning Signal (Raw 20kHz GEVI)")
+    ax1.set_ylabel("Amplitude")
+    ax1.set_xlabel("Time (s)")
+    
+    # Middle Panel: Orthogonal Veto (Homeostasis vs Corrosion)
+    t_opt = torch.arange(len(dab_hom)).numpy()
+    ax2.plot(t_opt, dab_hom, label="Homeostasis", color='green', linewidth=2)
+    ax2.plot(t_opt, dab_cor, label="Corrosion (Hardware Failure)", color='red', linestyle='--', linewidth=2)
+    ax2.axvline(x=ToyBiologicalEnvironment.EVENT_BOUNDARY_OPTICS, color='gray', linestyle='--', label="Event Boundary (T=50)")
+    ax2.set_title("Orthogonal Veto (Surprise)")
+    ax2.set_ylabel("Surprise (Cosine Distance)")
+    ax2.set_xlabel("Time (Optical Frames)")
+    ax2.legend()
+    
+    # Bottom Panel: True Crash (Toxic Shock)
+    ax3.plot(t_opt, dab_tox, label="Toxic Shock (Biological Crash)", color='purple', linewidth=2)
+    ax3.axvline(x=ToyBiologicalEnvironment.EVENT_BOUNDARY_OPTICS, color='gray', linestyle='--', label="Event Boundary (T=50)")
+    ax3.set_title("True Crash Detection (Surprise)")
+    ax3.set_ylabel("Surprise (Cosine Distance)")
+    ax3.set_xlabel("Time (Optical Frames)")
+    ax3.legend()
+    
+    plt.tight_layout()
+    os.makedirs("output", exist_ok=True)
+    plt.savefig("output/1_hssm_veto_proof.png")
+    print("[*] Dashboard saved to output/1_hssm_veto_proof.png")
+
 if __name__ == "__main__":
     # Quick sanity check
     device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
@@ -213,4 +270,7 @@ if __name__ == "__main__":
     
     print("\n[*] Testing Training Loop...")
     gevi_comp, mamba = train_orthogonal_veto(device)
+
+    print("\n[*] Generating Dashboard...")
+    evaluate_and_plot(gevi_comp, mamba, device)
 
