@@ -1,12 +1,22 @@
 import torch
+import torch.nn as nn
+import torch.optim as optim
 import math
 
+from src.models.state_space_engine import StateSpaceEngine
 class ToyBiologicalEnvironment:
     """
     Simulates a synthetic 'Drowning Signal' multiscale biological dataset.
     Generates high-frequency GEVI data (20kHz) and lower-frequency Optical data (100Hz).
     Both modalities are corrupted by a massive 2Hz pump artifact (sine wave).
     The GEVI data contains sparse 1ms biological spikes (action potentials).
+
+    TODO: Output Expectation to verify:
+    Question: "how does it know the pump vibration isn't a biological anomaly?" 
+    - The Top Panel shows the raw drowning signal (with the pump).
+    - The Bottom Panel shows the DAB metric. It will be completely flat during 
+    the first 50 frames despite the massive structural wobble being fed into it, 
+    proving the Fusion Core successfully zeroed it out of the predictive surprise metric.
     """
 
     # --- Constants for Data Generation ---
@@ -108,6 +118,83 @@ class ToyBiologicalEnvironment:
 
         return optical_tensor, gevi_tensor
 
+GEVI_COMPRESSOR_OUT_CHANNELS = 64
+GEVI_COMPRESSOR_KERNEL_SIZE = 200
+GEVI_COMPRESSOR_STRIDE = 200
+
+TRAIN_ITERATIONS = 150
+TRAIN_BATCH_SIZE = 16
+LEARNING_RATE = 1e-3
+
+def train_orthogonal_veto(device):
+    """
+    Trains the Edge Compressor (Conv1d) and Fusion Core (Mamba) jointly using 
+    self-supervised predictive coding on homeostasis data.
+    This forces the network to mathematically isolate spikes and orthogonalize artifacts.
+    
+    Args:
+        device (torch.device): Device to train on.
+        
+    Returns:
+        tuple: (gevi_compressor, mamba_engine) - The trained models.
+    """
+    print(f"[*] Initializing Orthogonal Veto Training on {device}...")
+    
+    # 1. Instantiate the "Edge Compressor"
+    gevi_compressor = nn.Conv1d(
+        in_channels=1, 
+        out_channels=GEVI_COMPRESSOR_OUT_CHANNELS, 
+        kernel_size=GEVI_COMPRESSOR_KERNEL_SIZE, 
+        stride=GEVI_COMPRESSOR_STRIDE
+    ).to(device)
+    
+    # 2. Instantiate the Fusion Core
+    mamba_engine = StateSpaceEngine(
+        d_model=ToyBiologicalEnvironment.OPTICS_DIM + GEVI_COMPRESSOR_OUT_CHANNELS
+    ).to(device)
+    
+    # 3. Setup optimizer and environment
+    optimizer = optim.Adam(
+        list(gevi_compressor.parameters()) + list(mamba_engine.parameters()), 
+        lr=LEARNING_RATE
+    )
+    env = ToyBiologicalEnvironment()
+    
+    # 4. Fast training loop
+    gevi_compressor.train()
+    mamba_engine.train()
+    
+    for iteration in range(1, TRAIN_ITERATIONS + 1):
+        optimizer.zero_grad()
+        
+        # Generate a fresh batch
+        opt_tensor, gevi_tensor = env.generate_batch(
+            TRAIN_BATCH_SIZE, scenario="homeostasis", device=device
+        )
+        
+        # Forward pass: Edge Compression
+        # gevi_tensor is [Batch, 1, 20000]
+        compressed_gevi = gevi_compressor(gevi_tensor) # -> [Batch, 64, 100]
+        compressed_gevi = compressed_gevi.transpose(1, 2) # -> [Batch, 100, 64]
+        
+        # Forward pass: Fusion
+        # opt_tensor is [Batch, 100, 768]
+        fused_tensor = torch.cat([opt_tensor, compressed_gevi], dim=-1) # -> [Batch, 100, 832]
+        
+        # Forward pass: Predictive Coding
+        scalar_loss, _ = mamba_engine(fused_tensor)
+        
+        # Backpropagation
+        scalar_loss.backward()
+        optimizer.step()
+        
+        if iteration % 30 == 0 or iteration == 1:
+            print(f"    [Iteration {iteration:03d}/{TRAIN_ITERATIONS}] Loss: {scalar_loss.item():.4f}")
+            
+    print("[*] Training Complete.")
+    return gevi_compressor, mamba_engine
+
+
 if __name__ == "__main__":
     # Quick sanity check
     device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
@@ -123,3 +210,7 @@ if __name__ == "__main__":
     
     opt, gev = env.generate_batch(4, scenario="toxic_shock", device=device)
     print(f"Toxic Shock -> Optics: {opt.shape}, GEVI: {gev.shape}")
+    
+    print("\n[*] Testing Training Loop...")
+    gevi_comp, mamba = train_orthogonal_veto(device)
+
