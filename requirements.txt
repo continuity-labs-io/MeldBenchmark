@@ -1,4 +1,6 @@
 fsspec
+# Goodfire Stochastic Parameter Decomposition (Interpretability)
+git+https://github.com/goodfire-ai/spd.git@spd-paper
 google-api-python-client
 google-auth-httplib2
 google-auth-oauthlib
@@ -12,6 +14,7 @@ pyarrow
 requests
 ruff
 scikit-learn
+transformers==4.40.1
 tifffile
 timm
 torch

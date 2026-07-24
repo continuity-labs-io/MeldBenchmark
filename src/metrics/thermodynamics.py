@@ -39,6 +39,31 @@ class ThermodynamicMetrics:
         return [cvi_scores[0]] * (window_size - 1) + cvi_scores
 
     def calculate_dab(self, z_sequence, window_size=4):
+        """
+        The code snippet implements Dynamic Mode Decomposition using a truncated Singular Value Decomposition. 
+        By decomposing the sliding window of latent states X, the algorithm approximates the local linear 
+        operator A_tilde that steps the system forward in time to state Y. The eigenvalues of this operator 
+        directly quantify the thermodynamic stability of the biological system. A maximum eigenvalue near 1.0 
+        indicates stable homeostasis, while a diverging eigenvalue maps to the system crossing the 
+        absorbing boundary into a structural crash.
+
+        The decision to utilize Dynamic Mode Decomposition over pseudo-arc length continuation stems from 
+        the specific architectural constraints of the platform.
+        - Compute Latency: Pseudo-arc length continuation is an iterative root-finding algorithm. 
+        It is computationally expensive and risks introducing variable execution times.
+        Truncated Singular Value Decomposition over a small sliding window is deterministic and executes 
+        with high efficiency on edge GPUs, ensuring the metric keeps pace with the biological timescales 
+        of milliseconds to minutes.
+        - Model Independence: Pseudo-arc length continuation requires an explicit, differentiable 
+        non-linear vector field to compute the Jacobian. Because the tissue trajectory is modeled 
+        inside the continuous latent space of the state-space engine, defining the exact non-linear
+         continuous field is complex. 
+         Dynamic Mode Decomposition is entirely data-driven, extracting the kinetic modes directly from
+          the streaming embeddings without requiring the underlying equations.
+        - Architectural Simplicity: The current approach provides a fast, elegant solution that 
+        satisfies the requirement for a real-time predictive metric. It isolates the critical variance 
+        and successfully detects the Waddington bifurcation point while keeping the codebase lean.
+        """
         import math
 
         time_steps = z_sequence.shape[0]

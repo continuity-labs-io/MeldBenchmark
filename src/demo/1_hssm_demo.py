@@ -274,3 +274,8 @@ if __name__ == "__main__":
     print("\n[*] Generating Dashboard...")
     evaluate_and_plot(gevi_comp, mamba, device)
 
+    print("\n[*] Exporting Mamba Fusion Core weights for SPD...")
+    os.makedirs("output/spd", exist_ok=True)
+    torch.save(mamba.state_dict(), "output/spd/meld_mamba.pth")
+    print("[*] Saved output/spd/meld_mamba.pth")
+
