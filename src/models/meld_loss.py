@@ -2,11 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class MeldLoss(nn.Module):
     """
     Composite loss function for the MELD Large Biological Model (LBM) state-space training loop.
     Incorporates Next-Frame Forecasting, Lipschitz continuous penalty, and Time-Reversal Error.
     """
+
     def __init__(self, alpha=1.0, beta=0.1, gamma=1.0, L=1.0):
         super().__init__()
         self.alpha = alpha
@@ -36,15 +38,15 @@ class MeldLoss(nn.Module):
         # 2. Lipschitz Penalty (L_lipschitz)
         # Calculate the predicted state change: Δy = pred_t_plus_1 - state_t
         delta_y = pred_t_plus_1 - state_t
-        
+
         # Calculate the L2 norm of the predicted state change per sample across all non-batch dimensions
         batch_size = delta_y.size(0)
         delta_y_flat = delta_y.view(batch_size, -1)
-        norm_delta_y = torch.norm(delta_y_flat, p=2, dim=1, keepdim=True) # shape (batch_size, 1)
+        norm_delta_y = torch.norm(delta_y_flat, p=2, dim=1, keepdim=True)  # shape (batch_size, 1)
 
         # Penalize this norm if it exceeds L * delta_x: max(0, ||Δy|| - L * Δx)
         lipschitz_violations = F.relu(norm_delta_y - self.L * delta_x)
-        
+
         # Mean across the batch
         l_lipschitz = lipschitz_violations.mean()
 

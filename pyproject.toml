@@ -10,6 +10,7 @@ target-version = "py311"
 [tool.ruff.lint]
 select = [
     "F",  # pyflakes
+    "E",  # pycodestyle (includes E501 for line length)
     "C4", # flake8-comprehensions
     "B",  # flake8-bugbear
 ]

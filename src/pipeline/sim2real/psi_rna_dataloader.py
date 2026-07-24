@@ -3,6 +3,7 @@ import pandas as pd
 # import scanpy as sc
 # import anndata as ad
 
+
 class PsiTranscriptomicLoader:
     def __init__(self, crash_minute=10):
         """
@@ -13,11 +14,21 @@ class PsiTranscriptomicLoader:
         self.crash_minute = crash_minute
         # Target proxy dataset from Tony Wyss-Coray's lab or CZ Biohub
         self.source_url = "s3://czb-cellxgene/wyss-coray-microglia-aging.h5ad"
-        
+
         # The 12 Waddington Anchors
         self.anchor_genes = [
-            'NFE2L2', 'TP53', 'CDKN2A', 'TREM2', 'APOE', 'IL6', 
-            'GFAP', 'MAPT', 'NANOG', 'CASP3', 'CAS13', 'GAPDH'
+            "NFE2L2",
+            "TP53",
+            "CDKN2A",
+            "TREM2",
+            "APOE",
+            "IL6",
+            "GFAP",
+            "MAPT",
+            "NANOG",
+            "CASP3",
+            "CAS13",
+            "GAPDH",
         ]
         print(f"[INIT] Psi Dataloader targeting proxy: {self.source_url}")
 
@@ -28,14 +39,22 @@ class PsiTranscriptomicLoader:
         Filter the 20,000 background genes down to exactly our 12 anchors.
         """
         print("[NETWORK] Mocking lazy stream from .h5ad AnnData store...")
-        
+
         # Simulating baseline mRNA copy numbers (lambdas for Poisson)
         # Real distributions would be zero-inflated negative binomials extracted from AnnData
         base_expression = {
-            'NFE2L2': 12.0, 'TP53': 2.0, 'CDKN2A': 0.5, 
-            'TREM2': 8.0, 'APOE': 25.0, 'IL6': 1.0, 
-            'GFAP': 40.0, 'MAPT': 30.0, 'NANOG': 0.0, 
-            'CASP3': 2.0, 'CAS13': 15.0, 'GAPDH': 150.0
+            "NFE2L2": 12.0,
+            "TP53": 2.0,
+            "CDKN2A": 0.5,
+            "TREM2": 8.0,
+            "APOE": 25.0,
+            "IL6": 1.0,
+            "GFAP": 40.0,
+            "MAPT": 30.0,
+            "NANOG": 0.0,
+            "CASP3": 2.0,
+            "CAS13": 15.0,
+            "GAPDH": 150.0,
         }
         return base_expression
 
@@ -46,21 +65,23 @@ class PsiTranscriptomicLoader:
         using Waddington-OT, Palantir, or RNA Velocity. Simulate the Cas13 Waddington crash.
         """
         print("[COMPUTE] Mapping discrete cell snapshots to continuous temporal trajectory...")
-        time_minutes = np.arange(0, total_minutes, 5) # 5-minute sampling
+        time_minutes = np.arange(0, total_minutes, 5)  # 5-minute sampling
         drift_matrix = np.zeros((len(time_minutes), len(self.anchor_genes)))
-        
+
         for i, gene in enumerate(self.anchor_genes):
             lambda_val = base_expression[gene]
             for t_idx, t_min in enumerate(time_minutes):
                 # Transcriptomic Hysteresis (Panic genes spike, Cas13 targets drop)
                 if t_min >= self.crash_minute:
-                    if gene in ['TP53', 'IL6', 'CASP3']: lambda_val += 15.0
-                    elif gene in ['NFE2L2']: lambda_val *= 0.2
-                
+                    if gene in ["TP53", "IL6", "CASP3"]:
+                        lambda_val += 15.0
+                    elif gene in ["NFE2L2"]:
+                        lambda_val *= 0.2
+
                 # [TASK 3] DATA ENGINEER: THE QUANTUM POISSON SAMPLER
                 # Hardware physics: discrete integer photon counts. Do NOT normalize.
                 drift_matrix[t_idx, i] = np.random.poisson(max(lambda_val, 0))
-                
+
         return time_minutes, drift_matrix
 
     def align_to_master_clock(self, time_minutes, drift_matrix, master_time_ms):
@@ -70,18 +91,19 @@ class PsiTranscriptomicLoader:
         Inject the 12-D Poisson counts into the 500Hz grid and fill the rest with NaNs.
         """
         print("[ALIGNMENT] Injecting 5-minute sparse RNA reads into 500Hz master clock...")
-        
-        cols = [f'Psi_{gene}' for gene in self.anchor_genes]
+
+        cols = [f"Psi_{gene}" for gene in self.anchor_genes]
         df_psi = pd.DataFrame(np.nan, index=np.arange(len(master_time_ms)), columns=cols)
-        df_psi.insert(0, 'Time_ms', master_time_ms)
-        
+        df_psi.insert(0, "Time_ms", master_time_ms)
+
         # Flash the laser exactly on the 5-minute marks
         for i, t_min in enumerate(time_minutes):
             target_ms = t_min * 60000
             idx = np.abs(master_time_ms - target_ms).argmin()
             df_psi.loc[idx, cols] = drift_matrix[i, :]
-            
+
         return df_psi
+
 
 # ==========================================
 # EXECUTION (Drop this in the Jupyter Notebook)
@@ -98,7 +120,7 @@ if __name__ == "__main__":
     base_expr = loader.fetch_and_filter_h5ad()
     t_mins, drift = loader.map_dead_to_live_trajectory(base_expr, total_minutes=16)
     final_df = loader.align_to_master_clock(t_mins, drift, master_clock_ms)
-    
+
     print("\n[SUCCESS] Sim2Real Psi Tensor Generated.")
     print("Showing the exact moment the shutter fires (Row 0):")
     print(final_df.head(2))

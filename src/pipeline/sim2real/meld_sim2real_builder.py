@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 
+
 def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     """
     MELD Xi-114 Sim2Real Engine
@@ -8,35 +9,40 @@ def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     Demonstrates the Hierarchical Entrainment Crash.
     """
     print("Booting Xi-114 Physics Engine...")
-    
+
     # 1. TIME CONSTANTS (The Multi-Scale Problem)
     burst_freq_hz = 500
     burst_duration_sec = 4.5
-    frames_per_burst = int(burst_duration_sec * burst_freq_hz) # 2250 frames per burst
+    frames_per_burst = int(burst_duration_sec * burst_freq_hz)  # 2250 frames per burst
     interval_min = 5
-    total_intervals = total_minutes // interval_min # 3 intervals in 15 mins
-    
+    total_intervals = total_minutes // interval_min  # 3 intervals in 15 mins
+
     time_ms = []
     current_time = 0.0
     for _ in range(total_intervals):
         # Generate the exact 4.5-second burst window
-        burst_times = np.linspace(current_time, current_time + (burst_duration_sec * 1000), frames_per_burst, endpoint=False)
+        burst_times = np.linspace(
+            current_time,
+            current_time + (burst_duration_sec * 1000),
+            frames_per_burst,
+            endpoint=False,
+        )
         time_ms.extend(burst_times)
-        current_time += (interval_min * 60 * 1000) # Advance 5 mins
-        
-    df = pd.DataFrame({'Time_ms': time_ms})
-    df['Minute'] = df['Time_ms'] / 60000.0
+        current_time += interval_min * 60 * 1000  # Advance 5 mins
+
+    df = pd.DataFrame({"Time_ms": time_ms})
+    df["Minute"] = df["Time_ms"] / 60000.0
     total_rows = len(df)
-    
+
     # ---------------------------------------------------------
-    # [TASK 1] SIGMA (Phase Structure - 100D) 
+    # [TASK 1] SIGMA (Phase Structure - 100D)
     # ML TEAM: Replace random drift with CZ Biohub real PCA embeddings
     # ---------------------------------------------------------
     print("Generating Sigma (100D)...")
-    sigma_cols = [f'Sigma_PC{i:03d}' for i in range(1, 101)]
+    sigma_cols = [f"Sigma_PC{i:03d}" for i in range(1, 101)]
     # Synthetic: smooth drift, accelerating after crash
     drift = np.cumsum(np.random.normal(0, 0.005, (total_rows, 100)), axis=0)
-    crash_penalty = np.where(df['Minute'].values[:, None] >= crash_minute, -0.02, 0)
+    crash_penalty = np.where(df["Minute"].values[:, None] >= crash_minute, -0.02, 0)
     sigma_df = pd.DataFrame(drift + crash_penalty, columns=sigma_cols)
 
     # ---------------------------------------------------------
@@ -46,30 +52,44 @@ def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     print("Generating Omega (2D)...")
     # Red Baseline (Stable)
     omega_red = np.random.normal(1.0, 0.01, total_rows)
-    
+
     # Green Active (Variance Explosion at crash)
-    is_crashing = df['Minute'] >= crash_minute
+    is_crashing = df["Minute"] >= crash_minute
     # Jitter spikes from 0.05 to 0.50 (10x Variance Explosion)
-    jitter = np.where(is_crashing, np.random.normal(0, 0.50, total_rows), np.random.normal(0, 0.05, total_rows))
+    jitter = np.where(
+        is_crashing, np.random.normal(0, 0.50, total_rows), np.random.normal(0, 0.05, total_rows)
+    )
     omega_grn = 1.0 + jitter
-    omega_df = pd.DataFrame({'Omega_VoltRed': omega_red, 'Omega_VoltGrn': omega_grn})
+    omega_df = pd.DataFrame({"Omega_VoltRed": omega_red, "Omega_VoltGrn": omega_grn})
 
     # ---------------------------------------------------------
     # [TASK 3] PSI (RNA Software - 12D)
     # ML TEAM: Replace Poisson generator with Gao/Wyss-Coray real scRNA-seq counts
     # ---------------------------------------------------------
     print("Generating Psi (12D)...")
-    psi_cols = ['Psi_NFE2L2', 'Psi_TP53', 'Psi_CDKN2A', 'Psi_TREM2', 'Psi_APOE', 'Psi_IL6', 
-                'Psi_GFAP', 'Psi_MAPT', 'Psi_NANOG', 'Psi_CASP3', 'Psi_CAS13', 'Psi_GAPDH']
-    
+    psi_cols = [
+        "Psi_NFE2L2",
+        "Psi_TP53",
+        "Psi_CDKN2A",
+        "Psi_TREM2",
+        "Psi_APOE",
+        "Psi_IL6",
+        "Psi_GFAP",
+        "Psi_MAPT",
+        "Psi_NANOG",
+        "Psi_CASP3",
+        "Psi_CAS13",
+        "Psi_GAPDH",
+    ]
+
     # Fill with NaNs (The shutter is closed 99% of the time)
     psi_df = pd.DataFrame(np.nan, index=df.index, columns=psi_cols)
-    
+
     # Only sample at the very first frame of each 5-min burst
     sample_indices = np.arange(0, total_rows, frames_per_burst)
-    
+
     for idx in sample_indices:
-        minute = df.loc[idx, 'Minute']
+        minute = df.loc[idx, "Minute"]
         if minute < crash_minute:
             # Healthy baseline (Normal Poisson counts)
             psi_df.loc[idx, psi_cols] = np.random.poisson(lam=5, size=12)
@@ -77,14 +97,17 @@ def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
             # Transcriptomic Hysteresis (Panic genes get stuck ON)
             psi_df.loc[idx, psi_cols] = np.random.poisson(lam=5, size=12)
             # TP53, IL6, and CASP3 spike massively
-            psi_df.loc[idx, ['Psi_TP53', 'Psi_IL6', 'Psi_CASP3']] = np.random.poisson(lam=50, size=3)
+            psi_df.loc[idx, ["Psi_TP53", "Psi_IL6", "Psi_CASP3"]] = np.random.poisson(
+                lam=50, size=3
+            )
 
     # Reorder for clean UX
-    cols = ['Time_ms', 'Minute', 'Omega_VoltGrn', 'Omega_VoltRed'] + psi_cols + sigma_cols
+    cols = ["Time_ms", "Minute", "Omega_VoltGrn", "Omega_VoltRed"] + psi_cols + sigma_cols
     df = pd.concat([df, omega_df, psi_df, sigma_df], axis=1)[cols]
-    
+
     print(f"Success! Generated Sim2Real Tensor: {total_rows} rows x {len(cols)} columns.")
     return df
+
 
 # Execute the engine
 meld_tensor = generate_meld_sim2real_stub()
