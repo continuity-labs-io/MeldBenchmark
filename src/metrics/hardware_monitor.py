@@ -48,8 +48,11 @@ class HardwareMonitor:
         if seq_lengths is None:
             seq_lengths = [100, 500, 1000, 2000, 4000, 8000]
 
-        if self.device.type != "cuda":
-            print("Warning: CUDA not available. Returning mock lists for CPU demonstration.")
+        if self.device.type not in ["cuda", "mps"]:
+            print(
+                "Warning: Hardware acceleration not available. "
+                "Returning mock lists for CPU demonstration."
+            )
             mamba_vram = [
                 self.base_vram_mb + (L * d_model * self.bytes_per_float * self.d_state / (1024**2))
                 for L in seq_lengths
@@ -83,10 +86,14 @@ class HardwareMonitor:
             x = torch.randn(1, L, d_model).to(self.device)
 
             if mamba is not None:
-                torch.cuda.reset_peak_memory_stats()
+                if self.device.type == "cuda":
+                    torch.cuda.reset_peak_memory_stats()
                 with torch.no_grad():
                     _ = mamba(x)
-                mamba_vram.append(torch.cuda.max_memory_allocated() / (1024**2))
+                if self.device.type == "cuda":
+                    mamba_vram.append(torch.cuda.max_memory_allocated() / (1024**2))
+                elif self.device.type == "mps":
+                    mamba_vram.append(torch.mps.current_allocated_memory() / (1024**2))
             else:
                 mamba_vram.append(
                     self.base_vram_mb
@@ -94,12 +101,19 @@ class HardwareMonitor:
                 )
 
             try:
-                torch.cuda.reset_peak_memory_stats()
+                if self.device.type == "cuda":
+                    torch.cuda.reset_peak_memory_stats()
                 with torch.no_grad():
                     _ = attn(x, x, x)
-                transformer_vram.append(torch.cuda.max_memory_allocated() / (1024**2))
-            except (torch.cuda.OutOfMemoryError, RuntimeError):
-                torch.cuda.empty_cache()
+                if self.device.type == "cuda":
+                    transformer_vram.append(torch.cuda.max_memory_allocated() / (1024**2))
+                elif self.device.type == "mps":
+                    transformer_vram.append(torch.mps.current_allocated_memory() / (1024**2))
+            except Exception:
+                if self.device.type == "cuda":
+                    torch.cuda.empty_cache()
+                elif self.device.type == "mps":
+                    torch.mps.empty_cache()
                 transformer_vram.append(None)
 
         return seq_lengths, mamba_vram, transformer_vram

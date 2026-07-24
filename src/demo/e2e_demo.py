@@ -215,9 +215,9 @@ def plot_thermodynamic_scoreboards(
     ax2.grid(True, alpha=0.2)
 
     # Plot 3: Hysteresis
-    t_rescue = np.arange(len(divergence_curve))
+    t_full = np.arange(len(divergence_curve))
     ax3.plot(
-        t_rescue,
+        t_full,
         divergence_curve,
         marker="^",
         color="springgreen",
@@ -225,19 +225,24 @@ def plot_thermodynamic_scoreboards(
         label="Path Divergence",
     )
     ax3.fill_between(
-        t_rescue,
+        t_full,
         divergence_curve,
         color="springgreen",
         alpha=0.2,
         label=f"Hysteresis Area: {hysteresis_scalar:.2f}",
     )
-    ax3.set_title(
-        "Morphological Hysteresis (Rescue vs. Healthy Trajectory)", color="white", fontweight="bold"
+    ax3.axvline(
+        x=7, color="white", linestyle=":", linewidth=2, label="Structural Tipping Point (T=7)"
     )
-    ax3.set_xlabel("Recovery Steps", color="white")
-    ax3.set_ylabel("Latent Distance (L2 Norm)")
-    ax3.set_xticks(t_rescue)
-    ax3.set_xticklabels([f"T{i + 7}" for i in t_rescue])
+    ax3.set_title(
+        "Morphological Hysteresis (Anomalous vs. Healthy Trajectory)",
+        color="white",
+        fontweight="bold",
+    )
+    ax3.set_xlabel("Continuous Time (Frames)", color="white")
+    ax3.set_ylabel("Latent Distance (L2 Norm)", color="white")
+    ax3.set_xticks(t_full)
+    ax3.set_xticklabels([f"T{i}" for i in t_full])
     ax3.legend()
     ax3.grid(True, alpha=0.2)
 
@@ -333,25 +338,28 @@ def main():
     with torch.no_grad():
         latent_anomalous = compressor(experimental_batch)
         latent_healthy = compressor(raw_batch)
-        print(f"    -> Compressed Latent Sequence Shape: {latent_anomalous.shape}")
+
+        # L2 Normalization ensures equal mathematical weighting during SVD/DMD
+        opt_anom_norm = F.layer_norm(latent_anomalous, [latent_anomalous.shape[-1]])
+        opt_health_norm = F.layer_norm(latent_healthy, [latent_healthy.shape[-1]])
+
+        print(f"    -> Compressed Latent Sequence Shape: {opt_anom_norm.shape}")
 
         gevi_anomalous = gevi_injector(
             experimental_batch.size(0), experimental_batch.size(1), device, is_healthy=False
         )
         gevi_healthy = gevi_injector(raw_batch.size(0), raw_batch.size(1), device, is_healthy=True)
 
-        # Normalize the latent spaces before fusion so the GEVI signal doesn't artificially outweigh the Optics
-        latent_anomalous = F.normalize(latent_anomalous, p=2, dim=-1)
-        latent_healthy = F.normalize(latent_healthy, p=2, dim=-1)
-        gevi_anomalous = F.normalize(gevi_anomalous, p=2, dim=-1)
-        gevi_healthy = F.normalize(gevi_healthy, p=2, dim=-1)
+        # Normalize GEVI before fusion
+        gevi_anom_norm = F.layer_norm(gevi_anomalous, [gevi_anomalous.shape[-1]])
+        gevi_health_norm = F.layer_norm(gevi_healthy, [gevi_healthy.shape[-1]])
 
-        latent_fused_anomalous = torch.cat([latent_anomalous, gevi_anomalous], dim=-1)
-        latent_fused_healthy = torch.cat([latent_healthy, gevi_healthy], dim=-1)
+        latent_fused_anomalous = torch.cat([opt_anom_norm, gevi_anom_norm], dim=-1)
+        latent_fused_healthy = torch.cat([opt_health_norm, gevi_health_norm], dim=-1)
 
     print("[*] Executing Level 2: Continuous Physics Modeling (Mamba-2)...")
     with torch.no_grad():
-        scalar_loss, _ = mamba_engine(latent_anomalous)
+        scalar_loss, _ = mamba_engine(opt_anom_norm)
         scalar_loss_fused, _ = mamba_engine_fused(latent_fused_anomalous)
         print(
             "    -> Continuous Trajectory Processed. Final Loss (Optics-Only): "
@@ -364,7 +372,7 @@ def main():
 
     print("[*] Extracting Thermodynamic Metrics (CVI, DAB, Hysteresis)...")
 
-    z_anomalous = latent_anomalous[0].detach()
+    z_anomalous = opt_anom_norm[0].detach()
     z_fused_anomalous = latent_fused_anomalous[0].detach()
     z_fused_healthy = latent_fused_healthy[0].detach()
     time_steps = z_anomalous.shape[0]
@@ -377,30 +385,26 @@ def main():
     dab_scores_fused = metrics.calculate_dab(z_fused_anomalous, window_size=4)
 
     print("[*] Simulating Biological Rescue & Calculating Hysteresis...")
-    # Take the shattered latent state (T=7) and let Mamba autoregressively predict recovery
-    z_shattered_fused = latent_fused_anomalous[:, 7:8, :]
-    rescue_trajectory_fused = [z_shattered_fused.squeeze(0)]
+    z_curr = latent_fused_anomalous[:, 7:8, :]
+    rescue_trajectory_fused = [z_curr.squeeze(0)]
 
-    z_curr = z_shattered_fused
     with torch.no_grad():
-        for _ in range(8):  # Predict recovery steps
+        for _ in range(8):  # Predict T=8 to T=15 recovery steps
             h_state = mamba_engine_fused.mamba(z_curr)
             z_next = mamba_engine_fused.proj(h_state[:, -1:, :])
             rescue_trajectory_fused.append(z_next.squeeze(0))
             z_curr = torch.cat([z_curr, z_next], dim=1)
 
-    z_rescue_path = torch.cat(rescue_trajectory_fused, dim=0)
+    # Build the full 16-step timeline for Hysteresis
+    z_rescue_full = torch.cat(
+        [z_fused_anomalous[:8, :], torch.cat(rescue_trajectory_fused[1:], dim=0)], dim=0
+    )
 
-    z_healthy_base = z_fused_healthy[7:, :]
-    pad_len = z_rescue_path.shape[0] - z_healthy_base.shape[0]
-    if pad_len > 0:
-        padding = z_healthy_base[-1:, :].repeat(pad_len, 1)
-        z_healthy_path = torch.cat([z_healthy_base, padding], dim=0)
-    else:
-        z_healthy_path = z_healthy_base[: z_rescue_path.shape[0], :]
+    pad_len = z_rescue_full.shape[0] - z_fused_healthy.shape[0]
+    z_healthy_full = torch.cat([z_fused_healthy, z_fused_healthy[-1:, :].repeat(pad_len, 1)], dim=0)
 
     hysteresis_scalar, divergence_curve = metrics.calculate_hysteresis(
-        z_healthy_path, z_rescue_path
+        z_healthy_full, z_rescue_full
     )
     print(f"    -> Thermodynamic Hysteresis (Scar Area): {hysteresis_scalar:.4f}")
 
