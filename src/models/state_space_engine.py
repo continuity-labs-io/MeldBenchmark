@@ -33,13 +33,6 @@ class StateSpaceEngine(nn.Module):
         # Maps hidden state at time t -> predicted embedding at time t+1
         self.forward_predictor = nn.Linear(d_model, d_model)
 
-    @classmethod
-    def from_pretrained(cls, pretrained_model_name_or_path, *model_args, **kwargs):
-        # MELD specific model geometry for SPD loaded weights
-        model = cls(d_model=768+64, d_state=16, d_conv=4, expand=2)
-        model.load_state_dict(torch.load(pretrained_model_name_or_path, map_location="cpu"))
-        return model
-
     def forward(self, x):
         """
         Args:
@@ -52,11 +45,6 @@ class StateSpaceEngine(nn.Module):
                 - frame_distances (torch.Tensor): 1D array of frame-by-frame 
                   Cosine Distances [Time-1]
         """
-        # Handle LM pipeline input (token ids from SimpleStories)
-        if x.dtype == torch.long or x.dtype == torch.int:
-            # We just need some dummy continuous embeddings for the structural decomposition test
-            x = F.embedding(x, torch.randn(60000, 832, device=x.device))
-
         # Ingest the sequence of spatial embeddings [Batch, Time, 768]
         # Pass through Mamba block to generate contextualized hidden states
         hidden_states = self.mamba(x)

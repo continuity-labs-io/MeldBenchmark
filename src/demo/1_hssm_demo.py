@@ -253,8 +253,8 @@ def evaluate_and_plot(compressor, mamba_engine, device):
     print("[*] Dashboard saved to output/1_hssm_veto_proof.png")
 
 if __name__ == "__main__":
-    # Quick sanity check
-    device = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
+    # Force CPU on Mac because mamba_ssm produces NaN on MPS natively
+    device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
     
     env = ToyBiologicalEnvironment()
@@ -273,9 +273,4 @@ if __name__ == "__main__":
 
     print("\n[*] Generating Dashboard...")
     evaluate_and_plot(gevi_comp, mamba, device)
-
-    print("\n[*] Exporting Mamba Fusion Core weights for SPD...")
-    os.makedirs("output/spd", exist_ok=True)
-    torch.save(mamba.state_dict(), "output/spd/meld_mamba.pth")
-    print("[*] Saved output/spd/meld_mamba.pth")
 
