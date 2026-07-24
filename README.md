@@ -36,7 +36,21 @@ pip install -r requirements.txt
 ```
 *(Note: Mamba SSM has known precision issues on Apple Silicon (MPS). The demo scripts automatically default to CPU for the Mamba training loop to prevent NaN instabilities.)*
 
-### Running the Demo
+### Running the Demos
+The repository contains two main demonstration scripts:
+
+#### 1. End-to-End Compiler Demo (`0_concat_demo.py`)
+This script demonstrates the full multi-modal pipeline of the MELD system. It ingests realistic AO-LLSM optical telemetry, injects synthetic high-frequency GEVI bioelectric data, and processes the fused temporal sequence through the continuous Mamba model. It outputs three core thermodynamic metrics:
+- Distance-to-Absorbing-Boundary (DAB) via Dynamic Mode Decomposition
+- Critical Variance Index (CVI) for structural wobble
+- Morphological Hysteresis (Scar Area) during biological rescue
+
+It also includes a hardware telemetry benchmark comparing VRAM scaling of Mamba vs. a legacy Transformer.
+```bash
+python src/demo/0_concat_demo.py
+```
+
+#### 2. Orthogonal Veto Training (`1_hssm_demo.py`)
 To train the Fusion Core and generate the inference dashboard:
 ```bash
 python src/demo/1_hssm_demo.py
