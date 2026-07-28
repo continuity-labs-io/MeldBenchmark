@@ -111,3 +111,37 @@ class ThermodynamicMetrics:
         hysteresis_area = torch.trapz(path_divergence).item()
 
         return hysteresis_area, path_divergence.tolist()
+
+    def calculate_lle(self, z_sequence, window_size=4, dt=1.0):
+        """
+        Computes the Local Lyapunov Exponent (LLE) over a sliding window
+        to measure the stability of the biological attractor basin.
+        """
+        import math
+
+        time_steps = z_sequence.shape[0]
+        lle_scores = [0.0] * window_size
+        if time_steps <= window_size:
+            return [0.0] * time_steps
+
+        for t in range(window_size, time_steps):
+            X = z_sequence[t - window_size : t]
+            Y = z_sequence[t - window_size + 1 : t + 1]
+
+            U, S, Vh = torch.linalg.svd(X, full_matrices=False)
+
+            # TRUNCATED SVD: Keep only significant singular values
+            rank = max(1, (S > 1e-5 * S[0]).sum().item())
+            U_k = U[:, :rank]
+            S_inv_k = torch.diag(1.0 / S[:rank])
+            Vh_k = Vh[:rank, :]
+
+            A_tilde = S_inv_k @ U_k.T @ Y @ Vh_k.T
+            eigenvalues = torch.linalg.eigvals(A_tilde)
+            max_eig = torch.max(torch.abs(eigenvalues)).item()
+
+            # Calculate LLE
+            lle = math.log(max_eig + 1e-7) / dt
+            lle_scores.append(lle)
+            
+        return lle_scores
