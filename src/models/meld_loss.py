@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 
 class MeldLoss(nn.Module):
@@ -64,3 +65,40 @@ class MeldLoss(nn.Module):
         }
 
         return l_total, metrics
+
+
+class QualiaContrastiveLoss(nn.Module):
+    """
+    Contrastive loss to align topological shape of continuous LFP standing waves 
+    with visual qualia (stimulus embeddings), similar to CLIP.
+    """
+    def __init__(self):
+        super().__init__()
+        self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))
+
+    def forward(self, lfp_latents, vision_latents):
+        # L2-normalize both sets of latent vectors along the feature dimension
+        lfp_latents = F.normalize(lfp_latents, p=2, dim=1)
+        vision_latents = F.normalize(vision_latents, p=2, dim=1)
+
+        # Calculate cosine similarity matrix
+        logits = (lfp_latents @ vision_latents.T) * self.logit_scale.exp()
+
+        # Labels for symmetric Cross-Entropy loss (InfoNCE)
+        batch_size = lfp_latents.size(0)
+        labels = torch.arange(batch_size, device=logits.device)
+
+        # Loss for LFP predicting image (rows) and image predicting LFP (columns)
+        loss_lfp_to_vision = F.cross_entropy(logits, labels)
+        loss_vision_to_lfp = F.cross_entropy(logits.T, labels)
+
+        # Average loss
+        loss = (loss_lfp_to_vision + loss_vision_to_lfp) / 2
+
+        # Telemetry Dictionary
+        metrics = {
+            "contrastive_loss": loss.detach().item(),
+            "logit_scale": self.logit_scale.detach().item(),
+        }
+
+        return loss, metrics
