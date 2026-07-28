@@ -1,4 +1,6 @@
-Please update the `ThermodynamicMetrics` class to include a new method called `calculate_cka(self, z_seq1, z_seq2)`. This method calculates the Linear Centered Kernel Alignment (CKA) to prove that the geometric shape of the biological manifold is preserved across multi-day recordings, even in the presence of representational drift. 
+Please update the `ThermodynamicMetrics` class to include a new method 
+called `calculate_cka(self, z_seq1, z_seq2)`. 
+This method calculates the Linear Centered Kernel Alignment (CKA) to prove that the geometric shape of the biological manifold is preserved across multi-day recordings, even in the presence of representational drift. 
 
 Implement this exclusively using pure PyTorch tensor operations to avoid introducing heavy external dependencies. 
 

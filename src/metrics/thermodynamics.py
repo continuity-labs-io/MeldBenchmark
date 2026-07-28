@@ -145,3 +145,39 @@ class ThermodynamicMetrics:
             lle_scores.append(lle)
             
         return lle_scores
+
+    def calculate_cka(self, z_seq1, z_seq2):
+        """
+        Calculates the Linear Centered Kernel Alignment (CKA) to prove that the geometric shape 
+        of the biological manifold is preserved across multi-day recordings, even in the presence 
+        of representational drift.
+        """
+        min_steps = min(z_seq1.shape[0], z_seq2.shape[0])
+        
+        # Trim to minimum length
+        X = z_seq1[:min_steps, :]
+        Y = z_seq2[:min_steps, :]
+        
+        n = min_steps
+        device = X.device
+        
+        # Compute the linear Gram matrices
+        K = X @ X.T
+        L = Y @ Y.T
+        
+        # Center the Gram matrices
+        H = torch.eye(n, device=device) - (torch.ones(n, n, device=device) / n)
+        K_c = H @ K @ H
+        L_c = H @ L @ H
+        
+        # Compute the Hilbert-Schmidt Independence Criterion (HSIC)
+        def hsic(A, B):
+            return torch.trace(A @ B)
+            
+        hsic_kl = hsic(K_c, L_c)
+        hsic_kk = hsic(K_c, K_c)
+        hsic_ll = hsic(L_c, L_c)
+        
+        # Return the normalized CKA score
+        cka = hsic_kl / torch.sqrt(hsic_kk * hsic_ll)
+        return cka.item()
