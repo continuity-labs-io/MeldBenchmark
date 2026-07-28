@@ -96,7 +96,8 @@ def run_palc_speed_benchmark(model, device, warmup=False):
     return (total_time / num_steps) * 1000  # ms per step
 
 def main():
-    device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
+    from src.utils.device import get_optimal_device
+    device = get_optimal_device(verbose=True)
     print(f"Using device: {device}")
     
     model = StateSpaceEngine(d_model=832).to(device).eval()

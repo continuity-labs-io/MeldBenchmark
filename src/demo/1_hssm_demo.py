@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import os
 
 from src.models.state_space_engine import StateSpaceEngine
+
 class ToyBiologicalEnvironment:
     """
     Simulates a synthetic 'Drowning Signal' multiscale biological dataset.
@@ -253,9 +254,9 @@ def evaluate_and_plot(compressor, mamba_engine, device):
     print("[*] Dashboard saved to output/1_hssm_veto_proof.png")
 
 if __name__ == "__main__":
-    # Force CPU on Mac because mamba_ssm produces NaN on MPS natively
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    print(f"Using device: {device}")
+    from src.utils.device import get_optimal_device
+    # Force CPU on Mac because mamba_ssm produces NaN on MPS natively during backward pass
+    device = get_optimal_device(verbose=True, allow_mps=False)
     
     env = ToyBiologicalEnvironment()
     

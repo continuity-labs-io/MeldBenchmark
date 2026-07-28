@@ -79,8 +79,8 @@ class StateSpaceEngine(nn.Module):
 
 if __name__ == "__main__":
     print("Testing StateSpaceEngine architecture...")
-    # Require CUDA for mamba_ssm typically, but let's see if it works on cpu for initialization
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    from src.utils.device import get_optimal_device
+    device = get_optimal_device(verbose=True)
     print(f"Using device: {device}")
 
     try:

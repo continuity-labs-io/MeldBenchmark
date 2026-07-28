@@ -283,12 +283,8 @@ def plot_thermodynamic_scoreboards(
 
 
 def main():
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-    elif torch.backends.mps.is_available():
-        device = torch.device("mps")
-    else:
-        device = torch.device("cpu")
+    from src.utils.device import get_optimal_device
+    device = get_optimal_device()
     print(f"[*] Booting MELD End-to-End Compiler on: {device.type.upper()}")
 
     print("[*] Ingesting AO-LLSM Optical Telemetry...")
