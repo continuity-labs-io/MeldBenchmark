@@ -10,6 +10,7 @@ from src.pipeline.neocortical_assembloid_dataloader import NeocorticalAssembloid
 from src.models.neocortical_engine import NeocorticalEngine
 from src.models.meld_loss import MeldLoss
 from src.utils.device import get_optimal_device
+from src.metrics.autopsy_engine import ThermodynamicAutopsyEngine
 
 def main():
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
@@ -64,6 +65,12 @@ def main():
     
     # Extract attribution map
     attribution_map = engine.compute_attribution(test_seq, target_time_step=EVENT_FRAME)
+    
+    print("[*] Generating Thermodynamic Autopsy Report...")
+    autopsy_engine = ThermodynamicAutopsyEngine(engine)
+    autopsy_report = autopsy_engine.generate_autopsy(test_seq, EVENT_FRAME)
+    import json
+    print(json.dumps(autopsy_report, indent=2))
     
     print("[*] Generating Publication-Ready Dashboard...")
     plt.style.use('dark_background')
