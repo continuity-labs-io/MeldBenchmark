@@ -19,3 +19,5 @@ tifffile
 timm
 torch
 zarr
+causal-conv1d
+pydantic-settings

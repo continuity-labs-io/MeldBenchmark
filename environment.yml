@@ -21,3 +21,5 @@ dependencies:
     - torch
     - mamba-ssm-macos
     - timm
+    - causal-conv1d
+    - pydantic-settings
