@@ -1,4 +1,4 @@
-Create a new PyTorch module `QualiaDecoder` in `src/models/qualia_decoder.py`.
+Create a new PyTorch module `TopoEncoder` in `src/models/topo_encoder.py`.
 Context: This model ingests the continuous E-field flow and uses Mamba-2 to extract the macroscopic geometric shape (the Dynamic Attractor Basin) into a fixed latent vector.
 
 Requirements:

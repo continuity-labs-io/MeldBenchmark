@@ -14,7 +14,7 @@ import numpy as np
 
 from src.utils.device import get_optimal_device
 from src.pipeline.uhd_lfp_dataloader import ContinuousLFPDataset
-from src.models.qualia_decoder import QualiaDecoder
+from src.models.topo_encoder import TopoEncoder
 from src.models.meld_loss import QualiaContrastiveLoss
 from src.metrics.thermodynamics import ThermodynamicMetrics
 
@@ -32,7 +32,7 @@ def main():
     dataset = ContinuousLFPDataset(time_steps=100, grid_size=64)
     dataset_iter = iter(dataset)
     
-    decoder = QualiaDecoder(d_model=768, d_state=16, d_conv=4, expand=2).to(device)
+    decoder = TopoEncoder(d_model=768, d_state=16, d_conv=4, expand=2).to(device)
     criterion = QualiaContrastiveLoss().to(device)
     optimizer = optim.AdamW(decoder.parameters(), lr=1e-3)
     

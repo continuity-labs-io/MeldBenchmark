@@ -3,7 +3,7 @@ import torch.nn as nn
 from mamba_ssm import Mamba
 from src.config import settings
 
-class QualiaDecoder(nn.Module):
+class TopoEncoder(nn.Module):
     """
     Ingests continuous E-field flow and uses Mamba-2 to extract the 
     macroscopic geometric shape (Dynamic Attractor Basin) into a fixed latent vector.
