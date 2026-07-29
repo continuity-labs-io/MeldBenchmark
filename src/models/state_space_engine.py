@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from mamba_ssm import Mamba
+from src.config import settings
 
 
 class StateSpaceEngine(nn.Module):
@@ -11,7 +12,7 @@ class StateSpaceEngine(nn.Module):
     It implements a self-supervised Forward Predictive Coding loop.
     """
 
-    def __init__(self, d_model=768, expand=2, d_conv=4, d_state=16):
+    def __init__(self, d_model=settings.MAMBA_D_MODEL, expand=2, d_conv=4, d_state=settings.MAMBA_D_STATE):
         """
         Args:
             d_model (int): The dimension of the input feature vectors (e.g., 768 for optical).

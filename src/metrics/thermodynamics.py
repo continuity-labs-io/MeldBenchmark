@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+from src.config import settings
 
 
 class ThermodynamicMetrics:
@@ -10,7 +11,7 @@ class ThermodynamicMetrics:
         self.alpha = alpha
         self.beta = beta
 
-    def calculate_cvi(self, z_sequence, window_size=3):
+    def calculate_cvi(self, z_sequence, window_size=settings.CVI_WINDOW_SIZE):
         """
         Critical Variance Index (CVI)
         Tracks the physical 'wobble' (Variance) and sluggishness (AR1) of the cell.
@@ -38,7 +39,7 @@ class ThermodynamicMetrics:
         # Pad initial frames to maintain temporal sequence length
         return [cvi_scores[0]] * (window_size - 1) + cvi_scores
 
-    def calculate_dab(self, z_sequence, window_size=4):
+    def calculate_dab(self, z_sequence, window_size=settings.DAB_WINDOW_SIZE):
         """
         The code snippet implements Dynamic Mode Decomposition using a truncated Singular Value Decomposition. 
         By decomposing the sliding window of latent states X, the algorithm approximates the local linear 
@@ -112,7 +113,7 @@ class ThermodynamicMetrics:
 
         return hysteresis_area, path_divergence.tolist()
 
-    def calculate_lle(self, z_sequence, window_size=4, dt=1.0):
+    def calculate_lle(self, z_sequence, window_size=settings.LLE_WINDOW_SIZE, dt=1.0):
         """
         Computes the Local Lyapunov Exponent (LLE) over a sliding window
         to measure the stability of the biological attractor basin.

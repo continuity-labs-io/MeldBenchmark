@@ -1,13 +1,14 @@
 import torch
 import torch.nn as nn
 from mamba_ssm import Mamba
+from src.config import settings
 
 class QualiaDecoder(nn.Module):
     """
     Ingests continuous E-field flow and uses Mamba-2 to extract the 
     macroscopic geometric shape (Dynamic Attractor Basin) into a fixed latent vector.
     """
-    def __init__(self, d_model=768, d_state=16, d_conv=4, expand=2):
+    def __init__(self, d_model=settings.MAMBA_D_MODEL, d_state=settings.MAMBA_D_STATE, d_conv=4, expand=2):
         super().__init__()
         
         # 2D Convolutional frontend to compress 64x64 spatial dimensions to d_model

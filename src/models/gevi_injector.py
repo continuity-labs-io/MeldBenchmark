@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+from src.config import settings
 
 class GEVIInjector(nn.Module):
     """
@@ -25,9 +26,9 @@ class GEVIInjector(nn.Module):
 
     def __init__(
         self,
-        gevi_sample_rate=20000,
-        target_clock_hz=100,
-        gevi_dim=64,
+        gevi_sample_rate=settings.GEVI_HZ,
+        target_clock_hz=settings.OPTICS_HZ,
+        gevi_dim=settings.MAMBA_D_STATE,
         baseline_mv=-70.0,
         noise_std=2.0,
         spike_prob=0.01,

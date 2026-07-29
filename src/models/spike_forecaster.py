@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from mamba_ssm import Mamba2
+from src.config import settings
 
 class SpikeForecaster(nn.Module):
     """
@@ -10,7 +11,7 @@ class SpikeForecaster(nn.Module):
     and predict non-negative spike rates for the subsequent time step.
     """
 
-    def __init__(self, input_dim=1240, d_model=768, expand=2, d_conv=4, d_state=128):
+    def __init__(self, input_dim=1240, d_model=settings.MAMBA_D_MODEL, expand=2, d_conv=4, d_state=settings.MAMBA_D_STATE):
         """
         Args:
             input_dim (int): The dimension of the input feature vectors (e.g., 1240 for spike data).

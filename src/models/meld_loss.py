@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from src.config import settings
 
 
 class MeldLoss(nn.Module):
@@ -10,7 +11,7 @@ class MeldLoss(nn.Module):
     Incorporates Next-Frame Forecasting, Lipschitz continuous penalty, and Time-Reversal Error.
     """
 
-    def __init__(self, alpha=1.0, beta=0.1, gamma=1.0, L=1.0):
+    def __init__(self, alpha=settings.MELD_ALPHA, beta=settings.MELD_BETA, gamma=settings.MELD_GAMMA, L=settings.LIPSCHITZ_CONSTANT):
         super().__init__()
         self.alpha = alpha
         self.beta = beta
