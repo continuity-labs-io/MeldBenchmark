@@ -10,4 +10,4 @@ Requirements:
    - Use `torch.gradient` to compute the spatial derivative of the voltage grid in both the X and Y directions.
    - Stack these gradients to form a 2-channel continuous tensor representing the directional flow of the standing wave.
 4. The final yielded tensor for the LFP must be shape `[time_steps, 2, 64, 64]`.
-5. Simultaneously yield a mock visual stimulus embedding (a randomly generated 768-D vector representing the visual qualia presented to the tissue during this window).
+5. Simultaneously yield a mock visual stimulus embedding (a randomly generated 768-D vector representing the visual stimuli presented to the tissue during this window).

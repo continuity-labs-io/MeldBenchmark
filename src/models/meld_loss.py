@@ -68,10 +68,10 @@ class MeldLoss(nn.Module):
         return l_total, metrics
 
 
-class QualiaContrastiveLoss(nn.Module):
+class TopoContrastiveLoss(nn.Module):
     """
     Contrastive loss to align topological shape of continuous LFP standing waves 
-    with visual qualia (stimulus embeddings), similar to CLIP.
+    with visual stimuli (stimulus embeddings), similar to CLIP.
     """
     def __init__(self):
         super().__init__()

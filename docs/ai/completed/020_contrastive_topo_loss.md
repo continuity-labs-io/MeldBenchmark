@@ -1,5 +1,5 @@
-Update the existing `src/models/meld_loss.py` file to include a new custom loss function `QualiaContrastiveLoss(nn.Module)`.
-Context: We are proving Ephaptic Lock-in by aligning the topological shape of the brain's continuous standing wave with the visual qualia it is experiencing, similar to CLIP's image-text alignment.
+Update the existing `src/models/meld_loss.py` file to include a new custom loss function `TopoContrastiveLoss(nn.Module)`.
+Context: We are proving Ephaptic Lock-in by aligning the topological shape of the brain's continuous standing wave with the visual stimuli it is experiencing, similar to CLIP's image-text alignment.
 
 Requirements:
 1. Initialize with a learnable temperature parameter `logit_scale` (initialized to `np.log(1 / 0.07)`).

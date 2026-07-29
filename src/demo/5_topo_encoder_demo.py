@@ -1,8 +1,8 @@
 """
-MELD Qualia Decoder Benchmarking Demo
+MELD Topo Encoder Benchmarking Demo
 
 This script simulates the decoding pipeline that maps the continuous 
-electromagnetic traveling wave (LFP) into visual qualia embeddings.
+electromagnetic traveling wave (LFP) into visual stimulus embeddings.
 It proves Ephaptic Lock-in (the ~300ms Ignition) when the physical 
 shape of the brain's wave aligns geometrically with the stimulus.
 """
@@ -15,7 +15,7 @@ import numpy as np
 from src.utils.device import get_optimal_device
 from src.pipeline.uhd_lfp_dataloader import ContinuousLFPDataset
 from src.models.topo_encoder import TopoEncoder
-from src.models.meld_loss import QualiaContrastiveLoss
+from src.models.meld_loss import TopoContrastiveLoss
 from src.metrics.thermodynamics import ThermodynamicMetrics
 
 def main():
@@ -24,7 +24,7 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     device = torch.device('cpu')
-    print(f"[*] Booting Qualia Decoder Demo on: {device.type.upper()}")
+    print(f"[*] Booting Topo Encoder Demo on: {device.type.upper()}")
     
     # 1. Setup
     print("[*] Initializing Dataloader and Models (LITE MODE)...")
@@ -33,7 +33,7 @@ def main():
     dataset_iter = iter(dataset)
     
     decoder = TopoEncoder(d_model=768, d_state=16, d_conv=4, expand=2).to(device)
-    criterion = QualiaContrastiveLoss().to(device)
+    criterion = TopoContrastiveLoss().to(device)
     optimizer = optim.AdamW(decoder.parameters(), lr=1e-3)
     
     # 2. Simulated Training Loop
@@ -92,7 +92,7 @@ def main():
     
     # Top Panel: Contrastive Loss Convergence
     ax1.plot(range(1, iterations + 1), loss_history, color='cyan', linewidth=2, marker='o', markersize=4)
-    ax1.set_title("Qualia Contrastive Alignment Loss over Iterations", color='white', fontweight='bold')
+    ax1.set_title("Topo Contrastive Alignment Loss over Iterations", color='white', fontweight='bold')
     ax1.set_xlabel("Iteration", color='white')
     ax1.set_ylabel("InfoNCE Loss", color='white')
     ax1.grid(True, alpha=0.2)
@@ -109,7 +109,7 @@ def main():
     ax2.grid(True, alpha=0.2)
     
     plt.tight_layout()
-    output_path = os.path.join(output_dir, "5_qualia_decoder_proof.png")
+    output_path = os.path.join(output_dir, "5_topo_encoder_proof.png")
     plt.savefig(output_path)
     print(f"[*] Dashboard saved to {output_path}")
 
