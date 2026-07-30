@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import os
 
 from src.models.state_space_engine import StateSpaceEngine
+from src.config import settings
 
 class ToyBiologicalEnvironment:
     """
@@ -22,29 +23,7 @@ class ToyBiologicalEnvironment:
     proving the Fusion Core successfully zeroed it out of the predictive surprise metric.
     """
 
-    # --- Constants for Data Generation ---
-    OPTICS_HZ = 100
-    GEVI_HZ = 20000
-    DURATION_SECONDS = 1.0
-
-    OPTICS_FRAMES = int(OPTICS_HZ * DURATION_SECONDS)  # 100 frames
-    GEVI_FRAMES = int(GEVI_HZ * DURATION_SECONDS)      # 20000 frames
-    OPTICS_DIM = 768
-    GEVI_DIM = 1
-
-    PUMP_ARTIFACT_HZ = 2.0
-    OPTICS_PUMP_AMPLITUDE = 2.0
-    GEVI_PUMP_AMPLITUDE = 50.0
-
-    SPIKE_AMPLITUDE = 100.0
-    SPIKE_PROBABILITY_PER_WINDOW = 0.15
-    SPIKE_WINDOW_STEPS = int(GEVI_HZ / OPTICS_HZ) # 200 steps per optic frame
-    SPIKE_WIDTH_STEPS = int(GEVI_HZ * 0.001)      # 1ms spike = 20 steps
-
-    EVENT_BOUNDARY_OPTICS = 50
-    EVENT_BOUNDARY_GEVI = EVENT_BOUNDARY_OPTICS * SPIKE_WINDOW_STEPS # 10000
-    TOXIC_SHOCK_NOISE_STD = 5.0
-    CORROSION_DRIFT_STD = 2.0
+    # Constants have been moved to src/config.py
 
     def __init__(self):
         pass
@@ -64,70 +43,64 @@ class ToyBiologicalEnvironment:
                 - gevi_tensor (torch.Tensor): Shape [batch_size, 1, 20000], float32
         """
         # 1. Base Time Tensors
-        t_optics = torch.arange(self.OPTICS_FRAMES, device=device, dtype=torch.float32) / self.OPTICS_HZ
-        t_gevi = torch.arange(self.GEVI_FRAMES, device=device, dtype=torch.float32) / self.GEVI_HZ
+        t_optics = torch.arange(settings.OPTICS_FRAMES, device=device, dtype=torch.float32) / settings.OPTICS_HZ
+        t_gevi = torch.arange(settings.GEVI_FRAMES, device=device, dtype=torch.float32) / settings.GEVI_HZ
 
         # 2. The Pump Artifact (2Hz sine wave)
         # Optical Pump Artifact: [100] -> [1, 100, 1]
-        pump_optics = self.OPTICS_PUMP_AMPLITUDE * torch.sin(2 * math.pi * self.PUMP_ARTIFACT_HZ * t_optics)
-        pump_optics = pump_optics.view(1, self.OPTICS_FRAMES, 1)
+        pump_optics = settings.OPTICS_PUMP_AMPLITUDE * torch.sin(2 * math.pi * settings.PUMP_ARTIFACT_HZ * t_optics)
+        pump_optics = pump_optics.view(1, settings.OPTICS_FRAMES, 1)
 
         # GEVI Pump Artifact: [20000] -> [1, 1, 20000]
-        pump_gevi = self.GEVI_PUMP_AMPLITUDE * torch.sin(2 * math.pi * self.PUMP_ARTIFACT_HZ * t_gevi)
-        pump_gevi = pump_gevi.view(1, 1, self.GEVI_FRAMES)
+        pump_gevi = settings.GEVI_PUMP_AMPLITUDE * torch.sin(2 * math.pi * settings.PUMP_ARTIFACT_HZ * t_gevi)
+        pump_gevi = pump_gevi.view(1, 1, settings.GEVI_FRAMES)
 
         # Initialize base tensors with the pump artifacts
-        optical_tensor = pump_optics.expand(batch_size, self.OPTICS_FRAMES, self.OPTICS_DIM).clone()
-        gevi_tensor = pump_gevi.expand(batch_size, self.GEVI_DIM, self.GEVI_FRAMES).clone()
+        optical_tensor = pump_optics.expand(batch_size, settings.OPTICS_FRAMES, settings.OPTICS_DIM).clone()
+        gevi_tensor = pump_gevi.expand(batch_size, settings.GEVI_DIM, settings.GEVI_FRAMES).clone()
 
         # 3. The Biology (Sparse 1ms spikes)
         # We iterate over the 200-step windows and randomly inject spikes.
-        num_windows = self.GEVI_FRAMES // self.SPIKE_WINDOW_STEPS
+        num_windows = settings.GEVI_FRAMES // settings.SPIKE_WINDOW_STEPS
         
         for b in range(batch_size):
             for w in range(num_windows):
                 # Under toxic shock, biology completely stops after T=50
-                if scenario == "toxic_shock" and w >= self.EVENT_BOUNDARY_OPTICS:
+                if scenario == "toxic_shock" and w >= settings.EVENT_BOUNDARY_OPTICS:
                     continue
                 
                 # Check if a spike occurs in this window
-                if torch.rand(1).item() < self.SPIKE_PROBABILITY_PER_WINDOW:
+                if torch.rand(1).item() < settings.SPIKE_PROBABILITY_PER_WINDOW:
                     # Choose a random start within the window
-                    start_idx = w * self.SPIKE_WINDOW_STEPS + torch.randint(
-                        0, self.SPIKE_WINDOW_STEPS - self.SPIKE_WIDTH_STEPS, (1,)
+                    start_idx = w * settings.SPIKE_WINDOW_STEPS + torch.randint(
+                        0, settings.SPIKE_WINDOW_STEPS - settings.SPIKE_WIDTH_STEPS, (1,)
                     ).item()
-                    end_idx = start_idx + self.SPIKE_WIDTH_STEPS
-                    gevi_tensor[b, 0, start_idx:end_idx] += self.SPIKE_AMPLITUDE
+                    end_idx = start_idx + settings.SPIKE_WIDTH_STEPS
+                    gevi_tensor[b, 0, start_idx:end_idx] += settings.SPIKE_AMPLITUDE
 
         # 4 & 5 & 6. Scenario Modifications
         if scenario == "corrosion":
             # Hardware Failure: massive random-walk baseline drift on GEVI after T=50 (10000 steps)
             # Optical remains perfectly normal.
-            drift_steps = self.GEVI_FRAMES - self.EVENT_BOUNDARY_GEVI
+            drift_steps = settings.GEVI_FRAMES - settings.EVENT_BOUNDARY_GEVI
             
             # Generate random step sizes and cumulatively sum them to create a random walk
-            random_steps = torch.randn((batch_size, 1, drift_steps), device=device) * self.CORROSION_DRIFT_STD
+            random_steps = torch.randn((batch_size, 1, drift_steps), device=device) * settings.CORROSION_DRIFT_STD
             random_walk = torch.cumsum(random_steps, dim=-1)
             
-            gevi_tensor[:, :, self.EVENT_BOUNDARY_GEVI:] += random_walk
+            gevi_tensor[:, :, settings.EVENT_BOUNDARY_GEVI:] += random_walk
 
         elif scenario == "toxic_shock":
             # Biological Crash: GEVI spikes stopped (handled in loop above).
             # Optical tensor experiences a variance explosion.
-            noise_steps = self.OPTICS_FRAMES - self.EVENT_BOUNDARY_OPTICS
-            variance_explosion = torch.randn((batch_size, noise_steps, self.OPTICS_DIM), device=device) * self.TOXIC_SHOCK_NOISE_STD
+            noise_steps = settings.OPTICS_FRAMES - settings.EVENT_BOUNDARY_OPTICS
+            variance_explosion = torch.randn((batch_size, noise_steps, settings.OPTICS_DIM), device=device) * settings.TOXIC_SHOCK_NOISE_STD
             
-            optical_tensor[:, self.EVENT_BOUNDARY_OPTICS:, :] += variance_explosion
+            optical_tensor[:, settings.EVENT_BOUNDARY_OPTICS:, :] += variance_explosion
 
         return optical_tensor, gevi_tensor
 
-GEVI_COMPRESSOR_OUT_CHANNELS = 64
-GEVI_COMPRESSOR_KERNEL_SIZE = 200
-GEVI_COMPRESSOR_STRIDE = 200
-
-TRAIN_ITERATIONS = 150
-TRAIN_BATCH_SIZE = 16
-LEARNING_RATE = 1e-3
+    # Global settings are now in src/config.py
 
 def train_orthogonal_veto(device):
     """
@@ -146,20 +119,37 @@ def train_orthogonal_veto(device):
     # 1. Instantiate the "Edge Compressor"
     gevi_compressor = nn.Conv1d(
         in_channels=1, 
-        out_channels=GEVI_COMPRESSOR_OUT_CHANNELS, 
-        kernel_size=GEVI_COMPRESSOR_KERNEL_SIZE, 
-        stride=GEVI_COMPRESSOR_STRIDE
+        out_channels=settings.GEVI_COMPRESSOR_OUT_CHANNELS, 
+        kernel_size=settings.GEVI_COMPRESSOR_KERNEL_SIZE, 
+        stride=settings.GEVI_COMPRESSOR_STRIDE
     ).to(device)
     
     # 2. Instantiate the Fusion Core
     mamba_engine = StateSpaceEngine(
-        d_model=ToyBiologicalEnvironment.OPTICS_DIM + GEVI_COMPRESSOR_OUT_CHANNELS
+        d_model=settings.OPTICS_DIM + settings.GEVI_COMPRESSOR_OUT_CHANNELS
     ).to(device)
+    
+    # --- DEMO ONLY: Mamba natively produces NaNs on MPS and is slow on CPU. 
+    # Since this is a demo and not a foundation model, we inject a fast surrogate 
+    # SSM (Causal Conv1d + Linear) to make it run flawlessly on Mac. ---
+    class DemoSSM(nn.Module):
+        def __init__(self, d_model):
+            super().__init__()
+            self.conv = nn.Conv1d(d_model, d_model, kernel_size=4, padding=3, groups=d_model)
+            self.proj = nn.Linear(d_model, d_model)
+        def forward(self, x):
+            x_c = x.transpose(1, 2)
+            x_c = self.conv(x_c)[..., :x.shape[1]]
+            x_c = x_c.transpose(1, 2)
+            import torch.nn.functional as F
+            return self.proj(F.silu(x_c))
+            
+    mamba_engine.mamba = DemoSSM(settings.OPTICS_DIM + settings.GEVI_COMPRESSOR_OUT_CHANNELS).to(device)
     
     # 3. Setup optimizer and environment
     optimizer = optim.Adam(
         list(gevi_compressor.parameters()) + list(mamba_engine.parameters()), 
-        lr=LEARNING_RATE
+        lr=settings.LEARNING_RATE
     )
     env = ToyBiologicalEnvironment()
     
@@ -167,12 +157,12 @@ def train_orthogonal_veto(device):
     gevi_compressor.train()
     mamba_engine.train()
     
-    for iteration in range(1, TRAIN_ITERATIONS + 1):
+    for iteration in range(1, settings.TRAIN_ITERATIONS + 1):
         optimizer.zero_grad()
         
         # Generate a fresh batch
         opt_tensor, gevi_tensor = env.generate_batch(
-            TRAIN_BATCH_SIZE, scenario="homeostasis", device=device
+            settings.TRAIN_BATCH_SIZE, scenario="homeostasis", device=device
         )
         
         # Forward pass: Edge Compression
@@ -189,10 +179,11 @@ def train_orthogonal_veto(device):
         
         # Backpropagation
         scalar_loss.backward()
+        torch.nn.utils.clip_grad_norm_(list(gevi_compressor.parameters()) + list(mamba_engine.parameters()), 1.0)
         optimizer.step()
         
-        if iteration % 30 == 0 or iteration == 1:
-            print(f"    [Iteration {iteration:03d}/{TRAIN_ITERATIONS}] Loss: {scalar_loss.item():.4f}")
+        if iteration % 10 == 0 or iteration == 1:
+            print(f"    [Iteration {iteration:03d}/{settings.TRAIN_ITERATIONS}] Loss: {scalar_loss.item():.4f}")
             
     print("[*] Training Complete.")
     return gevi_compressor, mamba_engine
@@ -207,11 +198,14 @@ def evaluate_and_plot(compressor, mamba_engine, device):
     opt_cor, gevi_cor = env.generate_batch(1, scenario="corrosion", device=device)
     opt_tox, gevi_tox = env.generate_batch(1, scenario="toxic_shock", device=device)
     
+    import torch.nn.functional as F
+    
     # 3. Helper to extract frame distances (Surprise)
     def get_dab(opt_tensor, gevi_tensor):
         with torch.no_grad():
             comp_gevi = compressor(gevi_tensor).transpose(1, 2)
-            fused = torch.cat([opt_tensor, comp_gevi], dim=-1)
+            fused = torch.cat([opt_tensor, comp_gevi], dim=-1)            
+            fused = F.layer_norm(fused, [fused.shape[-1]])
             _, frame_dists = mamba_engine(fused)
         return frame_dists.cpu().numpy()
         
@@ -224,7 +218,7 @@ def evaluate_and_plot(compressor, mamba_engine, device):
     
     # Top Panel: The Drowning Signal
     gevi_raw_slice = gevi_hom[0, 0, :4000].cpu().numpy()
-    t_gevi_slice = torch.arange(4000).numpy() / ToyBiologicalEnvironment.GEVI_HZ
+    t_gevi_slice = torch.arange(4000).numpy() / settings.GEVI_HZ
     ax1.plot(t_gevi_slice, gevi_raw_slice, color='cyan', alpha=0.8)
     ax1.set_title("The Drowning Signal (Raw 20kHz GEVI)")
     ax1.set_ylabel("Amplitude")
@@ -234,7 +228,7 @@ def evaluate_and_plot(compressor, mamba_engine, device):
     t_opt = torch.arange(len(dab_hom)).numpy()
     ax2.plot(t_opt, dab_hom, label="Homeostasis", color='green', linewidth=2)
     ax2.plot(t_opt, dab_cor, label="Corrosion (Hardware Failure)", color='red', linestyle='--', linewidth=2)
-    ax2.axvline(x=ToyBiologicalEnvironment.EVENT_BOUNDARY_OPTICS, color='gray', linestyle='--', label="Event Boundary (T=50)")
+    ax2.axvline(x=settings.EVENT_BOUNDARY_OPTICS, color='gray', linestyle='--', label="Event Boundary (T=50)")
     ax2.set_title("Orthogonal Veto (Surprise)")
     ax2.set_ylabel("Surprise (Cosine Distance)")
     ax2.set_xlabel("Time (Optical Frames)")
@@ -242,7 +236,7 @@ def evaluate_and_plot(compressor, mamba_engine, device):
     
     # Bottom Panel: True Crash (Toxic Shock)
     ax3.plot(t_opt, dab_tox, label="Toxic Shock (Biological Crash)", color='purple', linewidth=2)
-    ax3.axvline(x=ToyBiologicalEnvironment.EVENT_BOUNDARY_OPTICS, color='gray', linestyle='--', label="Event Boundary (T=50)")
+    ax3.axvline(x=settings.EVENT_BOUNDARY_OPTICS, color='gray', linestyle='--', label="Event Boundary (T=50)")
     ax3.set_title("True Crash Detection (Surprise)")
     ax3.set_ylabel("Surprise (Cosine Distance)")
     ax3.set_xlabel("Time (Optical Frames)")
@@ -255,8 +249,8 @@ def evaluate_and_plot(compressor, mamba_engine, device):
 
 if __name__ == "__main__":
     from src.utils.device import get_optimal_device
-    # Force CPU on Mac because mamba_ssm produces NaN on MPS natively during backward pass
-    device = get_optimal_device(verbose=True, allow_mps=False)
+    # Mamba might produce NaN without gradient clipping, but we added it. Let's try MPS.
+    device = get_optimal_device(verbose=True)
     
     env = ToyBiologicalEnvironment()
     
