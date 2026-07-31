@@ -11,14 +11,14 @@ class ThermodynamicMetrics:
         self.alpha = alpha
         self.beta = beta
 
-    def calculate_cvi(self, z_sequence, window_size=settings.CVI_WINDOW_SIZE):
+    def calculate_csd(self, z_sequence, window_size=settings.CSD_WINDOW_SIZE):
         """
-        Critical Variance Index (CVI)
+        Critical Slowing Down (CSD)
         Tracks the physical 'wobble' (Variance) and sluggishness (AR1) of the cell.
         z_sequence shape: [Time, Embed_Dim]
         """
         time_steps = z_sequence.shape[0]
-        cvi_scores = []
+        csd_scores = []
 
         # Graceful fallback if sequence is too short
         if time_steps < window_size:
@@ -33,13 +33,13 @@ class ThermodynamicMetrics:
             # Lag-1 Autocorrelation (Critical Slowing Down)
             ar1_t = F.cosine_similarity(z_win[:-1, :], z_win[1:, :], dim=1).mean().item()
 
-            cvi = (self.alpha * var_t) + (self.beta * ar1_t)
-            cvi_scores.append(cvi)
+            csd = (self.alpha * var_t) + (self.beta * ar1_t)
+            csd_scores.append(csd)
 
         # Pad initial frames to maintain temporal sequence length
-        return [cvi_scores[0]] * (window_size - 1) + cvi_scores
+        return [csd_scores[0]] * (window_size - 1) + csd_scores
 
-    def calculate_dab(self, z_sequence, window_size=settings.DAB_WINDOW_SIZE):
+    def calculate_ksm(self, z_sequence, window_size=settings.KSM_WINDOW_SIZE):
         """
         The code snippet implements Dynamic Mode Decomposition using a truncated Singular Value Decomposition. 
         By decomposing the sliding window of latent states X, the algorithm approximates the local linear 
@@ -68,7 +68,7 @@ class ThermodynamicMetrics:
         import math
 
         time_steps = z_sequence.shape[0]
-        dab_scores = [1.0] * window_size
+        ksm_scores = [1.0] * window_size
         if time_steps <= window_size:
             return [1.0] * time_steps
 
@@ -88,10 +88,10 @@ class ThermodynamicMetrics:
             eigenvalues = torch.linalg.eigvals(A_tilde)
             max_eig = torch.max(torch.abs(eigenvalues)).item()
 
-            # Bound DAB smoothly [0, 1] using an exponential envelope
-            dab = math.exp(-0.5 * abs(max_eig - 1.0))
-            dab_scores.append(max(0.0, dab))
-        return dab_scores
+            # Bound KSM smoothly [0, 1] using an exponential envelope
+            ksm = math.exp(-0.5 * abs(max_eig - 1.0))
+            ksm_scores.append(max(0.0, ksm))
+        return ksm_scores
 
     def calculate_hysteresis(self, z_baseline, z_perturbed):
         """

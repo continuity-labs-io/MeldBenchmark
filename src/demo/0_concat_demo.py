@@ -7,8 +7,8 @@ It ingests AO-LLSM optical telemetry, injects synthetic high-frequency GEVI
 fused temporal sequence through a continuous physics modeling layer (Mamba-2).
 
 The script computes and visualizes three core thermodynamic metrics:
-1. Distance-to-Absorbing-Boundary (DAB) via Dynamic Mode Decomposition
-2. Critical Variance Index (CVI) for structural wobble
+1. Koopman-Stability-Metric (KSM) via Dynamic Mode Decomposition
+2. Critical Slowing Down (CSD) for structural wobble
 3. Morphological Hysteresis (Scar Area) during biological rescue
 
 Finally, it benchmarks and plots the hardware telemetry (VRAM usage)
@@ -27,7 +27,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from src.metrics.hardware_monitor import HardwareMonitor
-from src.metrics.thermodynamics import ThermodynamicMetrics
+from src.metrics.metrics import ThermodynamicMetrics
 from src.models.gevi_injector import GEVIInjector
 from src.models.spatial_compressor import SpatialCompressor
 from src.models.state_space_engine import StateSpaceEngine
@@ -57,20 +57,20 @@ def plot_frame_projection(frame_3d, title, filename):
     plt.close()
 
 
-def plot_dab_metric(dab_scores, filename):
-    """Plots the Distance-to-Absorbing-Boundary (DAB) metric."""
+def plot_ksm_metric(ksm_scores, filename):
+    """Plots the Koopman-Stability-Metric (KSM) metric."""
     plt.figure(figsize=(10, 5))
     plt.style.use("dark_background")
-    time_axis = np.arange(1, len(dab_scores) + 1)
+    time_axis = np.arange(1, len(ksm_scores) + 1)
 
     plt.plot(
         time_axis,
-        dab_scores,
+        ksm_scores,
         marker="o",
         color="cyan",
         linewidth=3,
         markersize=8,
-        label="Prediction Error (DAB)",
+        label="Prediction Error (KSM)",
     )
 
     # Highlight the anomaly zone (Predicting Frame 7 happens at Transition step 7)
@@ -80,7 +80,7 @@ def plot_dab_metric(dab_scores, filename):
     plt.axvspan(6.5, 7.5, color="crimson", alpha=0.15)
 
     plt.title(
-        "Distance-to-Absorbing-Boundary (DAB) Metric vs Time",
+        "Koopman-Stability-Metric (KSM) Metric vs Time",
         fontsize=14,
         fontweight="bold",
         color="white",
@@ -98,20 +98,20 @@ def plot_dab_metric(dab_scores, filename):
     plt.close()
 
 
-def plot_cvi_metric(cvi_scores, filename):
-    """Plots the Critical Variance Index (CVI) metric."""
+def plot_csd_metric(csd_scores, filename):
+    """Plots the Critical Slowing Down (CSD) metric."""
     plt.figure(figsize=(10, 5))
     plt.style.use("dark_background")
-    time_axis = np.arange(0, len(cvi_scores))
+    time_axis = np.arange(0, len(csd_scores))
 
     plt.plot(
         time_axis,
-        cvi_scores,
+        csd_scores,
         marker="o",
         color="magenta",
         linewidth=3,
         markersize=8,
-        label="Critical Variance Index (CVI)",
+        label="Critical Slowing Down (CSD)",
     )
 
     # Highlight the anomaly zone (The noise was injected at Frame 7)
@@ -121,13 +121,13 @@ def plot_cvi_metric(cvi_scores, filename):
     plt.axvspan(6.5, 7.5, color="crimson", alpha=0.15)
 
     plt.title(
-        "Thermodynamic Stability: Critical Variance Index (CVI)",
+        "Thermodynamic Stability: Critical Slowing Down (CSD)",
         fontsize=14,
         fontweight="bold",
         color="white",
     )
     plt.xlabel("Time Step (Frames)", fontsize=12, color="white")
-    plt.ylabel("CVI Amplitude (Variance + AR1)", fontsize=12, color="white")
+    plt.ylabel("CSD Amplitude (Variance + AR1)", fontsize=12, color="white")
     plt.xticks(time_axis, [f"T{i}" for i in time_axis])
     plt.legend(fontsize=11)
     plt.grid(True, alpha=0.2)
@@ -141,10 +141,10 @@ def plot_cvi_metric(cvi_scores, filename):
 
 def plot_thermodynamic_scoreboards(
     time_steps,
-    dab_scores_optics,
-    dab_scores_fused,
-    cvi_scores_optics,
-    cvi_scores_fused,
+    ksm_scores_optics,
+    ksm_scores_fused,
+    csd_scores_optics,
+    csd_scores_fused,
     divergence_curve,
     hysteresis_scalar,
     seq_lengths,
@@ -156,60 +156,60 @@ def plot_thermodynamic_scoreboards(
     plt.style.use("dark_background")
     time_axis = np.arange(time_steps)
 
-    # Plot 1: DAB
+    # Plot 1: KSM
     ax1.plot(
         time_axis,
-        dab_scores_optics,
+        ksm_scores_optics,
         marker="o",
         color="cyan",
         linestyle="--",
         linewidth=2,
-        label="Optical-Only (DAB)",
+        label="Optical-Only (KSM)",
     )
     ax1.plot(
         time_axis,
-        dab_scores_fused,
+        ksm_scores_fused,
         marker="s",
         color="yellow",
         linewidth=3,
-        label="Fused Multi-Modal (DAB)",
+        label="Fused Multi-Modal (KSM)",
     )
     ax1.axvline(x=6, color="gold", linestyle="--", linewidth=2)
     ax1.axvspan(5.5, 6.5, color="gold", alpha=0.15)
     ax1.axvline(x=7, color="crimson", linestyle="--", linewidth=2)
     ax1.axvspan(6.5, 7.5, color="crimson", alpha=0.15)
     ax1.set_title(
-        "True DAB (Dynamic Mode Decomposition Eigenvalues)", color="white", fontweight="bold"
+        "True KSM (Dynamic Mode Decomposition Eigenvalues)", color="white", fontweight="bold"
     )
     ax1.set_ylabel("Distance to Singularity")
     ax1.set_xticks(time_axis)
     ax1.legend()
     ax1.grid(True, alpha=0.2)
 
-    # Plot 2: CVI
+    # Plot 2: CSD
     ax2.plot(
         time_axis,
-        cvi_scores_optics,
+        csd_scores_optics,
         marker="o",
         color="magenta",
         linestyle="--",
         linewidth=2,
-        label="Optical-Only (CVI)",
+        label="Optical-Only (CSD)",
     )
     ax2.plot(
         time_axis,
-        cvi_scores_fused,
+        csd_scores_fused,
         marker="s",
         color="orange",
         linewidth=3,
-        label="Fused Multi-Modal (CVI)",
+        label="Fused Multi-Modal (CSD)",
     )
     ax2.axvline(x=6, color="gold", linestyle="--", linewidth=2)
     ax2.axvspan(5.5, 6.5, color="gold", alpha=0.15)
     ax2.axvline(x=7, color="white", linestyle=":", linewidth=2)
     ax2.axvspan(6.5, 7.5, color="crimson", alpha=0.15)
-    ax2.set_title("Structural Wobble (CVI)", color="white", fontweight="bold")
-    ax2.set_ylabel("CVI Amplitude")
+    ax2.set_title("Structural Wobble (CSD)", color="white", fontweight="bold")
+    ax2.set_ylabel("CSD Amplitude")
     ax2.set_xticks(time_axis)
     ax2.legend()
     ax2.grid(True, alpha=0.2)
@@ -370,7 +370,7 @@ def main():
             f"{scalar_loss_fused.item():.4f}"
         )
 
-    print("[*] Extracting Thermodynamic Metrics (CVI, DAB, Hysteresis)...")
+    print("[*] Extracting Thermodynamic Metrics (CSD, KSM, Hysteresis)...")
 
     z_anomalous = opt_anom_norm[0].detach()
     z_fused_anomalous = latent_fused_anomalous[0].detach()
@@ -378,11 +378,11 @@ def main():
     time_steps = z_anomalous.shape[0]
 
     metrics = ThermodynamicMetrics(alpha=500.0, beta=1.0)
-    cvi_scores_optics = metrics.calculate_cvi(z_anomalous, window_size=3)
-    dab_scores_optics = metrics.calculate_dab(z_anomalous, window_size=4)
+    csd_scores_optics = metrics.calculate_csd(z_anomalous, window_size=3)
+    ksm_scores_optics = metrics.calculate_ksm(z_anomalous, window_size=4)
 
-    cvi_scores_fused = metrics.calculate_cvi(z_fused_anomalous, window_size=3)
-    dab_scores_fused = metrics.calculate_dab(z_fused_anomalous, window_size=4)
+    csd_scores_fused = metrics.calculate_csd(z_fused_anomalous, window_size=3)
+    ksm_scores_fused = metrics.calculate_ksm(z_fused_anomalous, window_size=4)
 
     print("[*] Simulating Biological Rescue & Calculating Hysteresis...")
     z_curr = latent_fused_anomalous[:, EVENT_BOUNDARY:EVENT_BOUNDARY+1, :]
@@ -415,10 +415,10 @@ def main():
 
     plot_thermodynamic_scoreboards(
         time_steps,
-        dab_scores_optics,
-        dab_scores_fused,
-        cvi_scores_optics,
-        cvi_scores_fused,
+        ksm_scores_optics,
+        ksm_scores_fused,
+        csd_scores_optics,
+        csd_scores_fused,
         divergence_curve,
         hysteresis_scalar,
         seq_lengths,

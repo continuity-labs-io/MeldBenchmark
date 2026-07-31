@@ -201,7 +201,7 @@ def evaluate_and_plot(compressor, mamba_engine, device):
     import torch.nn.functional as F
     
     # 3. Helper to extract frame distances (Surprise)
-    def get_dab(opt_tensor, gevi_tensor):
+    def get_ksm(opt_tensor, gevi_tensor):
         with torch.no_grad():
             comp_gevi = compressor(gevi_tensor).transpose(1, 2)
             fused = torch.cat([opt_tensor, comp_gevi], dim=-1)            
@@ -209,37 +209,38 @@ def evaluate_and_plot(compressor, mamba_engine, device):
             _, frame_dists = mamba_engine(fused)
         return frame_dists.cpu().numpy()
         
-    dab_hom = get_dab(opt_hom, gevi_hom)
-    dab_cor = get_dab(opt_cor, gevi_cor)
-    dab_tox = get_dab(opt_tox, gevi_tox)
+    ksm_hom = get_ksm(opt_hom, gevi_hom)
+    ksm_cor = get_ksm(opt_cor, gevi_cor)
+    ksm_tox = get_ksm(opt_tox, gevi_tox)
     
     # 4. Plotting
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 12))
     
     # Top Panel: The Drowning Signal
-    gevi_raw_slice = gevi_hom[0, 0, :4000].cpu().numpy()
-    t_gevi_slice = torch.arange(4000).numpy() / settings.GEVI_HZ
+    gevi_raw_slice = gevi_hom[0, 0, :].cpu().numpy()
+    t_gevi_slice = torch.arange(len(gevi_raw_slice)).numpy() / settings.GEVI_HZ
     ax1.plot(t_gevi_slice, gevi_raw_slice, color='cyan', alpha=0.8)
     ax1.set_title("The Drowning Signal (Raw 20kHz GEVI)")
     ax1.set_ylabel("Amplitude")
     ax1.set_xlabel("Time (s)")
     
     # Middle Panel: Orthogonal Veto (Homeostasis vs Corrosion)
-    t_opt = torch.arange(len(dab_hom)).numpy()
-    ax2.plot(t_opt, dab_hom, label="Homeostasis", color='green', linewidth=2)
-    ax2.plot(t_opt, dab_cor, label="Corrosion (Hardware Failure)", color='red', linestyle='--', linewidth=2)
-    ax2.axvline(x=settings.EVENT_BOUNDARY_OPTICS, color='gray', linestyle='--', label="Event Boundary (T=50)")
+    t_opt = torch.arange(len(ksm_hom)).numpy() / settings.OPTICS_HZ
+    ax2.plot(t_opt, ksm_hom, label="Homeostasis", color='green', linewidth=2)
+    ax2.plot(t_opt, ksm_cor, label="Corrosion (Hardware Failure)", color='red', linestyle='--', linewidth=2)
+    event_time_s = settings.EVENT_BOUNDARY_OPTICS / settings.OPTICS_HZ
+    ax2.axvline(x=event_time_s, color='gray', linestyle='--', label=f"Event Boundary (T={event_time_s}s)")
     ax2.set_title("Orthogonal Veto (Surprise)")
     ax2.set_ylabel("Surprise (Cosine Distance)")
-    ax2.set_xlabel("Time (Optical Frames)")
+    ax2.set_xlabel("Time (s)")
     ax2.legend()
     
     # Bottom Panel: True Crash (Toxic Shock)
-    ax3.plot(t_opt, dab_tox, label="Toxic Shock (Biological Crash)", color='purple', linewidth=2)
-    ax3.axvline(x=settings.EVENT_BOUNDARY_OPTICS, color='gray', linestyle='--', label="Event Boundary (T=50)")
+    ax3.plot(t_opt, ksm_tox, label="Toxic Shock (Biological Crash)", color='purple', linewidth=2)
+    ax3.axvline(x=event_time_s, color='gray', linestyle='--', label=f"Event Boundary (T={event_time_s}s)")
     ax3.set_title("True Crash Detection (Surprise)")
     ax3.set_ylabel("Surprise (Cosine Distance)")
-    ax3.set_xlabel("Time (Optical Frames)")
+    ax3.set_xlabel("Time (s)")
     ax3.legend()
     
     plt.tight_layout()

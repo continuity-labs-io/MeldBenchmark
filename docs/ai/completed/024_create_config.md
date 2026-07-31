@@ -16,8 +16,8 @@ class MeldSettings(BaseSettings):
     EPHYS_BIN_MS: int = Field(default=50, description="Electrophysiology bin size in milliseconds")
 
     # --- THERMODYNAMIC METRIC WINDOWS ---
-    DAB_WINDOW_SIZE: int = Field(default=4, description="Dynamic Mode Decomposition sliding window")
-    CVI_WINDOW_SIZE: int = Field(default=3, description="Critical Variance Index sliding window")
+    KSM_WINDOW_SIZE: int = Field(default=4, description="Dynamic Mode Decomposition sliding window")
+    CSD_WINDOW_SIZE: int = Field(default=3, description="Critical Slowing Down sliding window")
     LLE_WINDOW_SIZE: int = Field(default=4, description="Local Lyapunov Exponent sliding window")
     
     # --- PHYSICS LOSS PARAMETERS ---

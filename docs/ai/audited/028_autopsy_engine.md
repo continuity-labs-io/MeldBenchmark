@@ -4,7 +4,7 @@
 Create a new Python module named `src/metrics/autopsy_engine.py` that translates raw continuous neural tracking data and MambaLRP attribution tensors into the structured Thermodynamic Autopsy JSON payload.
 
 ## Context
-Our continuous monitoring system tracks a 114-Dimensional biological state vector per time step (100D Sigma morphological shape indices, 12D Psi RNA expression anchors, and 2D Omega bioelectric voltage traces). When a Waddington crash or critical anomaly is detected via thermodynamic metrics (like DAB), this engine executes a backward attribution trace and generates an automated diagnostic autopsy report.
+Our continuous monitoring system tracks a 114-Dimensional biological state vector per time step (100D Sigma morphological shape indices, 12D Psi RNA expression anchors, and 2D Omega bioelectric voltage traces). When a Waddington crash or critical anomaly is detected via thermodynamic metrics (like KSM), this engine executes a backward attribution trace and generates an automated diagnostic autopsy report.
 
 ## Requirements
 
@@ -16,7 +16,7 @@ Our continuous monitoring system tracks a 114-Dimensional biological state vecto
    - Compute the first-order Taylor attribution (Input * Gradient) across the sequence leading up to the crash using the model's forward pass.
    - Identify the primary latent driver dimension with the highest global variance or gradient magnitude.
    - Extract the top 3 critical time steps prior to the crash (e.g., $T-2, T-4, T-7$ or specific inflection points). For each time step, identify the highest-scoring `flagged_input` feature and its normalized `relevance_score`.
-   - Map each flagged feature to a human-readable biological `mechanism` string based on its modality (e.g., if a `Psi` gene triggers, describe it as an RNA stress alarm; if `Omega` flickers, describe it as an electrical baseline destabilization).
+   - Map each flagged feature to a human-reaksmle biological `mechanism` string based on its modality (e.g., if a `Psi` gene triggers, describe it as an RNA stress alarm; if `Omega` flickers, describe it as an electrical baseline destabilization).
    
 3. **Output Schema**:
    - Return a standard Python dictionary strictly matching the user's Autopsy JSON schema:

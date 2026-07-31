@@ -1,15 +1,15 @@
-Context: We are finalizing the Tier 1 Sandbox for Project MELD. The initial E2E script ran successfully, but the thermodynamic metrics (DAB) suffer from an eigenvalue inversion on stable frames, the Hysteresis rollout is too short, and the script defaults to CPU on Macs instead of utilizing Apple Silicon (MPS). 
+Context: We are finalizing the Tier 1 Sandbox for Project MELD. The initial E2E script ran successfully, but the thermodynamic metrics (KSM) suffer from an eigenvalue inversion on stable frames, the Hysteresis rollout is too short, and the script defaults to CPU on Macs instead of utilizing Apple Silicon (MPS). 
 
 Task 1: Update `src/metrics/thermodynamics.py`
-Fix the rank-deficiency and eigenvalue logic in the DAB calculation.
-- In `calculate_dab(self, z_sequence, window_size=4)`:
+Fix the rank-deficiency and eigenvalue logic in the KSM calculation.
+- In `calculate_ksm(self, z_sequence, window_size=4)`:
   - Add Tikhonov regularization to the `S_inv` calculation to prevent divide-by-zero on highly stable frames: 
     `S_inv = torch.diag(S / (S**2 + 1e-4))`
-  - Fix the `dab` calculation so that an eigenvalue of 1.0 results in a DAB of 1.0 (Healthy), and diverging eigenvalues drop the DAB toward 0.0 (Crash):
+  - Fix the `ksm` calculation so that an eigenvalue of 1.0 results in a KSM of 1.0 (Healthy), and diverging eigenvalues drop the KSM toward 0.0 (Crash):
     ```python
-    # DAB is bounded [0, 1]. A stable system has max_eig near 1.0.
-    dab = 1.0 / (1.0 + abs(max_eig - 1.0))
-    dab_scores.append(dab)
+    # KSM is bounded [0, 1]. A stable system has max_eig near 1.0.
+    ksm = 1.0 / (1.0 + abs(max_eig - 1.0))
+    ksm_scores.append(ksm)
     ```
 
 Task 2: Update `src/demo/e2e_demo.py`

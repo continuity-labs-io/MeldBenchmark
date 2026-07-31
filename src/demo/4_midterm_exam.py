@@ -6,7 +6,7 @@ This script demonstrates:
 1. Live streaming of 50ms multi-unit spike arrays (SpikeProphecyDataset).
 2. Continuous-time inference via Mamba-2 (SpikeForecaster).
 3. Physics-constrained optimization using MeldLoss (Lipschitz + Time Reversal).
-4. Real-time extraction of Thermodynamic Metrics (CVI, DAB, LLE) from the hidden manifold.
+4. Real-time extraction of Thermodynamic Metrics (CSD, KSM, LLE) from the hidden manifold.
 """
 
 import os
@@ -21,7 +21,7 @@ from torch.utils.data import DataLoader
 from src.pipeline.spike_ingestion import SpikeProphecyDataset
 from src.models.spike_forecaster import SpikeForecaster
 from src.models.meld_loss import MeldLoss
-from src.metrics.thermodynamics import ThermodynamicMetrics
+from src.metrics.metrics import ThermodynamicMetrics
 from src.utils.device import get_optimal_device
 import matplotlib
 
@@ -49,7 +49,7 @@ class ContinuousEphysEngine(nn.Module):
         
         return pred_t_plus_1, reconstructed_t, hidden_states
 
-def plot_midterm_dashboard(time_axis, cvi, dab, lle, event_frame=None, filename="4_midterm_exam_dashboard.png"):
+def plot_midterm_dashboard(time_axis, csd, ksm, lle, event_frame=None, filename="4_midterm_exam_dashboard.png"):
     """Generates the Lambda=40 Substrate Independence Dashboard."""
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     output_dir = os.path.join(project_root, "output")
@@ -58,23 +58,23 @@ def plot_midterm_dashboard(time_axis, cvi, dab, lle, event_frame=None, filename=
     plt.style.use("dark_background")
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 14), sharex=True)
 
-    # Panel 1: DAB (Distance to Absorbing Boundary)
-    ax1.plot(time_axis, dab, color="cyan", linewidth=2.5, label="DAB (Structural Margin)")
+    # Panel 1: KSM (Koopman Stability Metric)
+    ax1.plot(time_axis, ksm, color="cyan", linewidth=2.5, label="KSM (Structural Margin)")
     if event_frame is not None:
         ax1.axvline(x=time_axis[event_frame], color="white", linestyle="--", linewidth=2, label="Waddington Crash (Tissue Silencing)")
         ax1.axvspan(time_axis[max(0, event_frame-2)], time_axis[min(len(time_axis)-1, event_frame+2)], color="crimson", alpha=0.15)
-    ax1.set_title("Biological Stability: Distance to Absorbing Boundary (DAB)", color="white", fontweight="bold")
+    ax1.set_title("Biological Stability: Koopman Stability Metric (KSM)", color="white", fontweight="bold")
     ax1.set_ylabel("Stable Eigenvalue Bound")
     ax1.axhline(y=0.9, color="crimson", linestyle="--", linewidth=1, alpha=0.8, label="Critical Threshold")
     ax1.grid(True, alpha=0.2)
     ax1.legend(loc="lower right")
 
-    # Panel 2: CVI (Critical Variance Index)
-    ax2.plot(time_axis, cvi, color="magenta", linewidth=2.5, label="CVI (Wobble & Slowing Down)")
+    # Panel 2: CSD (Critical Slowing Down)
+    ax2.plot(time_axis, csd, color="magenta", linewidth=2.5, label="CSD (Wobble & Slowing Down)")
     if event_frame is not None:
         ax2.axvline(x=time_axis[event_frame], color="white", linestyle="--", linewidth=2)
         ax2.axvspan(time_axis[max(0, event_frame-2)], time_axis[min(len(time_axis)-1, event_frame+2)], color="crimson", alpha=0.15)
-    ax2.set_title("Kinetic Volatility: Critical Variance Index (CVI)", color="white", fontweight="bold")
+    ax2.set_title("Kinetic Volatility: Critical Slowing Down (CSD)", color="white", fontweight="bold")
     ax2.set_ylabel("Variance Amplitude")
     ax2.grid(True, alpha=0.2)
     ax2.legend(loc="upper left")
@@ -214,11 +214,11 @@ def main():
         
         t0 = time.perf_counter()
         
-        print("    -> Calculating Distance to Absorbing Boundary (DAB) via DMD...")
-        dab_scores = metrics.calculate_dab(z_sequence, window_size=5)
+        print("    -> Calculating Koopman Stability Metric (KSM) via DMD...")
+        ksm_scores = metrics.calculate_ksm(z_sequence, window_size=5)
         
-        print("    -> Calculating Critical Variance Index (CVI)...")
-        cvi_scores = metrics.calculate_cvi(z_sequence, window_size=5)
+        print("    -> Calculating Critical Slowing Down (CSD)...")
+        csd_scores = metrics.calculate_csd(z_sequence, window_size=5)
         
         print("    -> Calculating Local Lyapunov Exponent (LLE) via DMD...")
         lle_scores = metrics.calculate_lle(z_sequence, window_size=5, dt=DT)
@@ -227,9 +227,9 @@ def main():
         print(f"    -> Metric Calculation Latency: {(t1-t0)*1000:.2f} ms")
         
         # Time axis for plotting in seconds
-        time_axis = np.arange(len(dab_scores)) * DT
+        time_axis = np.arange(len(ksm_scores)) * DT
         
-        plot_midterm_dashboard(time_axis, cvi_scores, dab_scores, lle_scores, event_frame=EVENT_FRAME)
+        plot_midterm_dashboard(time_axis, csd_scores, ksm_scores, lle_scores, event_frame=EVENT_FRAME)
         print("\n[+] MID-TERM EXAM PASSED: Substrate Independence Validated on True Electrophysiology.")
         
     except StopIteration:

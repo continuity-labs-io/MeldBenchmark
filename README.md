@@ -41,8 +41,8 @@ The repository contains two main demonstration scripts:
 
 #### 1. End-to-End Compiler Demo (`0_concat_demo.py`)
 This script demonstrates the full multi-modal pipeline of the MELD system. It ingests realistic AO-LLSM optical telemetry, injects synthetic high-frequency GEVI bioelectric data, and processes the fused temporal sequence through the continuous Mamba model. It outputs three core thermodynamic metrics:
-- Distance-to-Absorbing-Boundary (DAB) via Dynamic Mode Decomposition
-- Critical Variance Index (CVI) for structural wobble
+- Koopman-Stability-Metric (KSM) via Dynamic Mode Decomposition
+- Critical Slowing Down (CSD) for structural wobble
 - Morphological Hysteresis (Scar Area) during biological rescue
 
 It also includes a hardware telemetry benchmark comparing VRAM scaling of Mamba vs. a legacy Transformer.

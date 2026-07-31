@@ -1,7 +1,7 @@
 import torch
 import time
 from src.models.state_space_engine import StateSpaceEngine
-from src.metrics.thermodynamics import ThermodynamicMetrics
+from src.metrics.metrics import ThermodynamicMetrics
 
 """
 Sample Result:
@@ -22,11 +22,11 @@ def run_accuracy_benchmark(device):
     z_seq[50:100] = z_seq[50:100] * scalars.unsqueeze(1)
     
     thermo = ThermodynamicMetrics(alpha=500.0)
-    dab_scores = thermo.calculate_dab(z_seq, window_size=4)
+    ksm_scores = thermo.calculate_ksm(z_seq, window_size=4)
     
-    # Identify exact frame DAB metric drops below 0.9
+    # Identify exact frame KSM metric drops below 0.9
     drop_frame = None
-    for i, score in enumerate(dab_scores):
+    for i, score in enumerate(ksm_scores):
         if score < 0.9:
             drop_frame = i
             break
@@ -105,7 +105,7 @@ def main():
     print("Running Accuracy Benchmark (Temporal Lag)...")
     drop_frame = run_accuracy_benchmark(device)
     lag = drop_frame - 50 if drop_frame is not None else "N/A"
-    print(f"Variance explosion injected at frame 50. DAB dropped below 0.9 at frame {drop_frame}. (Lag: {lag} frames)")
+    print(f"Variance explosion injected at frame 50. KSM dropped below 0.9 at frame {drop_frame}. (Lag: {lag} frames)")
     
     print("Running 5-step warmup loop to compile hardware graphs...")
     run_dmd_speed_benchmark(device, warmup=True)

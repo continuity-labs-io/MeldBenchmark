@@ -1,4 +1,4 @@
-In `src/demo/hssm_toy_model.py`, add the evaluation and plotting logic (The DAB Dashboard).
+In `src/demo/hssm_toy_model.py`, add the evaluation and plotting logic (The KSM Dashboard).
 
 1. Write an `evaluate_and_plot(compressor, mamba_engine, device)` function.
 2. Generate validation data (batch size 1) for all 3 scenarios: 'homeostasis', 
@@ -9,12 +9,12 @@ In `src/demo/hssm_toy_model.py`, add the evaluation and plotting logic (The DAB 
    - Top Panel (The Drowning Signal): Plot a 4000-step slice (0.2 seconds) of the raw 
      20kHz GEVI 'homeostasis' signal to visually show the biological spikes riding and 
      "drowning" on top of the massive 2Hz hardware sine wave.
-   - Middle Panel (Orthogonal Veto): Plot the DAB metrics for 'homeostasis' vs 
+   - Middle Panel (Orthogonal Veto): Plot the KSM metrics for 'homeostasis' vs 
      'corrosion'. The corrosion line should trace the homeostasis line closely 
      (remaining highly stable), proving Mamba's input-dependent gating used the healthy 
      camera to mathematically veto the broken electrode drift. Add a vertical dashed 
      line at T=50.
-   - Bottom Panel (True Crash): Plot the DAB metric for 'toxic_shock'. It should remain 
+   - Bottom Panel (True Crash): Plot the KSM metric for 'toxic_shock'. It should remain 
      perfectly flat during the first half (ignoring the massive pump wobble artifact), 
      and violently spike exactly at T=50 when the cell actually dies and the systems 
      decouple. Add a vertical dashed line at T=50.

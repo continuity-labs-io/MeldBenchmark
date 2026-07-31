@@ -92,11 +92,11 @@ if __name__ == "__main__":
         time_steps = 10
         x = torch.randn(batch_size, time_steps, 768).to(device)
 
-        loss, dab_metric = model(x)
+        loss, ksm_metric = model(x)
 
         print(f"Input shape: {x.shape}")
         print(f"Scalar Loss: {loss.item():.4f}")
-        print(f"DAB Metric (Frame-by-frame Cosine Distances) shape: {dab_metric.shape}")
+        print(f"KSM Metric (Frame-by-frame Cosine Distances) shape: {ksm_metric.shape}")
         print("Test passed! Requirements satisfied.")
     except Exception as e:
         print(f"Test failed or skipped due to environment constraints: {e}")

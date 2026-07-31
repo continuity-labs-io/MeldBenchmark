@@ -6,7 +6,7 @@ from src.models.spike_forecaster import SpikeForecaster
 from src.utils.device import get_optimal_device
 
 def format_bytes(size):
-    """Format bytes into a human-readable string."""
+    """Format bytes into a human-reaksmle string."""
     power = 2**10
     n = 0
     power_labels = {0: '', 1: 'K', 2: 'M', 3: 'G', 4: 'T'}

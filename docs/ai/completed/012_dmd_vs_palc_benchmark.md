@@ -13,13 +13,13 @@ Requirements:
 2. **The Accuracy Benchmark (Temporal Lag):**
 - Create a dummy sequence `z_seq = torch.randn(100, 832, device=device) * 0.1`.
 - At exactly frame 50, inject a catastrophic variance explosion (multiply frames 50-100 by an exponentially increasing scalar) to simulate a structural Waddington crash.
-- Run `ThermodynamicMetrics(alpha=500.0).calculate_dab(z_seq, window_size=4)`.
-- Identify the exact frame the DAB metric drops below 0.9.
+- Run `ThermodynamicMetrics(alpha=500.0).calculate_ksm(z_seq, window_size=4)`.
+- Identify the exact frame the KSM metric drops below 0.9.
 - Note: DMD will naturally have a slight temporal lag (1-3 frames) because it calculates the approximation over a sliding window. PALC operates on single-point instantaneous topology, making it frame-perfect. We will log this tradeoff.
 
 3. **Algorithm 1: DMD Speed Benchmark**
 - Loop over 100 dummy sliding windows of shape `[4, 832]`.
-- Implement the exact SVD block from `calculate_dab` (U, S, Vh, A_tilde, eigvals).
+- Implement the exact SVD block from `calculate_ksm` (U, S, Vh, A_tilde, eigvals).
 - Measure the execution time of ONLY the math block per step using `time.perf_counter()`.
 - Return the average time per step (ms).
 
