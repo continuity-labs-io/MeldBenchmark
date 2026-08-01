@@ -14,7 +14,7 @@ select = [
     "C4", # flake8-comprehensions
     "B",  # flake8-bugbear
 ]
-ignore = ["F401"]
+ignore = ["F401", "E501", "E402"]
 
 [tool.ruff.format]
 quote-style = "double"

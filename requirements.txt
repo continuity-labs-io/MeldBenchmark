@@ -21,3 +21,5 @@ torch
 zarr
 causal-conv1d
 pydantic-settings
+pytest
+pyright

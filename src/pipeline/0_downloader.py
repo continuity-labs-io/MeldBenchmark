@@ -16,7 +16,10 @@ DOWNLOAD_DIR = "./dataset/raw_tiffs"
 def setup_drive_api():
     """Authenticates and returns the Google Drive API service."""
     SCOPES = ["https://www.googleapis.com/auth/drive.readonly"]
-    flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+    # Ensure credentials.json is loaded from the same directory as this script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    creds_path = os.path.join(script_dir, "credentials.json")
+    flow = InstalledAppFlow.from_client_secrets_file(creds_path, SCOPES)
     creds = flow.run_local_server(port=0)
     return build("drive", "v3", credentials=creds)
 

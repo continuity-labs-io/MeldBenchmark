@@ -63,7 +63,7 @@ def run_dmd_speed_benchmark(device, warmup=False):
         
         # Explicit CPU move for eigvals
         eigenvalues = torch.linalg.eigvals(A_tilde.cpu()).to(device)
-        max_eig = torch.max(torch.abs(eigenvalues)).item()
+        _ = torch.max(torch.abs(eigenvalues)).item()
         
         end = time.perf_counter()
         total_time += (end - start)
@@ -88,7 +88,7 @@ def run_palc_speed_benchmark(model, device, warmup=False):
         # Reshape to dense [832, 832]
         J = J.reshape(832, 832)
         
-        J_inv = torch.linalg.inv(J + torch.eye(832, device=device) * 1e-4)
+        _ = torch.linalg.inv(J + torch.eye(832, device=device) * 1e-4)
         
         end = time.perf_counter()
         total_time += (end - start)

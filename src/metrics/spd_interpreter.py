@@ -85,7 +85,7 @@ def main():
     spd_utils.load_pretrained = patched_load_pretrained
     lm_module.load_pretrained = patched_load_pretrained
     
-    print(f"[*] Booting Stochastic Parameter Decomposition via Goodfire API...")
+    print("[*] Booting Stochastic Parameter Decomposition via Goodfire API...")
     print(f"[*] Config: {config_path.name}")
     print(f"[*] Output Dir: {out_dir}")
     # Execute the decomposition natively!

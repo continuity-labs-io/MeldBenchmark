@@ -27,7 +27,6 @@ class OmegaBioelectricLoader:
         print("[NETWORK] Mocking kilohertz voltage trace ingestion...")
 
         # Simulating baseline membrane potential with sparse action potentials
-        time_sec = np.linspace(0, total_frames / self.sample_rate_hz, total_frames)
 
         # Base membrane voltage (normalized to 1.0)
         base_voltage = np.ones(total_frames)

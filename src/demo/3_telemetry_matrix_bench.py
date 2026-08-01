@@ -70,7 +70,7 @@ def run_benchmark(batch_size=32, time_steps=100, num_batches=10):
         start_time = time.perf_counter()
         
         with torch.no_grad():
-            predictions = model(batch)
+            _ = model(batch)
             
         # Synchronize device after timer
         if torch.cuda.is_available():

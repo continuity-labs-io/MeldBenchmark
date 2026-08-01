@@ -104,14 +104,14 @@ def main():
     M_MAX = 64  # 64-electrode array for clean visualization
     EVENT_FRAME = 60
 
-    print(f"[*] Loading Pre-Trained Continuous Ephys Engine...")
+    print("[*] Loading Pre-Trained Continuous Ephys Engine...")
     engine = SpikeForecaster(input_dim=M_MAX, d_model=128, d_state=16).to(device)
     
-    print(f"[*] Generating Biological Telemetry...")
+    print("[*] Generating Biological Telemetry...")
     val_batch = torch.randn(1, TIME_STEPS, M_MAX, device=device).abs() * 0.5
     
     # INJECT THE TRIGGER: A silent sub-circuit failure occurs at T=40 on electrodes 10-15
-    print(f"    -> Injecting root cause anomaly at T=40 (Electrodes 10-15)")
+    print("    -> Injecting root cause anomaly at T=40 (Electrodes 10-15)")
     val_batch[:, 40:50, 10:15] += 5.0
     
     # INJECT THE CRASH: The tissue structurally crashes at T=60
@@ -124,7 +124,7 @@ def main():
     raw_numpy = val_batch[0].cpu().numpy()
     rel_numpy = relevance_tensor[0].cpu().numpy()
 
-    print(f"[*] Rendering DARPA-Grade Interpretability Dashboard...")
+    print("[*] Rendering DARPA-Grade Interpretability Dashboard...")
     plot_lrp_dashboard(raw_numpy, rel_numpy, event_frame=EVENT_FRAME)
     print("\n[+] DEMO COMPLETE: Explainability requirement satisfied.")
 

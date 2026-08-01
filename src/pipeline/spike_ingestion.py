@@ -46,7 +46,7 @@ class SpikeProphecyDataset(IterableDataset):
         self.sessions_info = self.metadata.get("sessions", [])
         if isinstance(self.sessions_info, dict):
             # If it's a dict like "0": {...}, "1": {...}
-            self.session_keys = sorted(list(self.sessions_info.keys()), key=int)
+            self.session_keys = sorted(self.sessions_info.keys(), key=int)
         else:
             # If it's a list
             self.session_keys = list(range(len(self.sessions_info)))
