@@ -6,6 +6,7 @@ Task: Refactor the `calculate_ksm` and `calculate_lle` methods to use the PyDMD 
 3. Extract the continuous-time eigenvalues (ω) directly from the fitted OptDMD model. 
 4. Calculate the local linear operator Ã's maximum eigenvalue divergence to bound our KSM score [0, 1] exactly as before, but backed by the optimized solver.
 5. Ensure data types are properly managed when moving between PyTorch tensors and PyDMD's expected NumPy arrays. Keep the fallback graceful so edge GPUs don't stall on highly stable, rank-deficient biological frames.
+6. Ensure unit tests are extended to cover the new PyDMD integration and existing tests still pass.
 
 For environment.yml (conda-forge):
 
