@@ -213,7 +213,15 @@ def evaluate_and_plot(compressor, mamba_engine, device):
     ksm_cor = get_ksm(opt_cor, gevi_cor)
     ksm_tox = get_ksm(opt_tox, gevi_tox)
     
-    # 4. Plotting
+    # 4. Programmatic Verification
+    # Ensure the surprise metric is flat during the first 50 frames (homeostasis/pump artifact)
+    # The fusion core should have learned to veto the massive 2Hz wobble.
+    import numpy as np
+    surprise_variance = np.var(ksm_hom[:50])
+    assert surprise_variance < 0.1, f"Veto Proof Failed! Surprise metric is not flat. Variance: {surprise_variance:.6f}"
+    print(f"[*] Veto Proof Passed: Surprise metric variance during pump artifact is {surprise_variance:.6f}")
+    
+    # 5. Plotting
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 12))
     
     # Top Panel: The Drowning Signal
