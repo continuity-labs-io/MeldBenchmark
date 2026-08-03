@@ -1,7 +1,7 @@
 import time
 import torch
 from torch.utils.data import DataLoader
-from src.pipeline.spike_ingestion import SpikeProphecyDataset
+from src.pipeline.ephys.spike_ingestion import SpikeProphecyDataset
 from src.models.spike_forecaster import SpikeForecaster
 from src.utils.device import get_optimal_device
 
