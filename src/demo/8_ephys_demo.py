@@ -22,7 +22,7 @@ from src.metrics.mamba_lrp import MambaLRPEpsilon
 from src.metrics.hardware_monitor import HardwareMonitor
 from src.utils.device import get_optimal_device
 
-def plot_ephys_dashboard(raw_ephys, vram_history, ksm_scores, relevance, event_frame, filename="8_ephys_demo.png"):
+def plot_ephys_dashboard(raw_ephys, vram_history, ksm_scores, relevance, event_frame, crash_ms, filename="8_ephys_demo.png"):
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
     output_dir = os.path.join(project_root, "output")
     os.makedirs(output_dir, exist_ok=True)
@@ -42,7 +42,7 @@ def plot_ephys_dashboard(raw_ephys, vram_history, ksm_scores, relevance, event_f
     ax1 = axes[0]
     ax1.imshow(raw_sub.T, aspect="auto", cmap="magma", 
                extent=[time_axis[0], time_axis[-1], 64, 0])
-    ax1.axvline(x=event_time, color="white", linestyle="--", linewidth=2, label="Waddington Crash (T=250ms)")
+    ax1.axvline(x=event_time, color="white", linestyle="--", linewidth=2, label=f"Waddington Crash (T={crash_ms}ms)")
     ax1.set_title("Panel 1: Raw HD-MEA 20kHz Telemetry (Subsampled to 64 Ch)", color="white", fontweight="bold")
     ax1.set_ylabel("Electrode Array")
     ax1.legend(loc="upper right")
@@ -94,18 +94,26 @@ def main():
     print(" PROJECT CHRONOS: MASTER EPHYS DASHBOARD (8_ephys_demo)")
     print("="*80)
     
-    # 1. Setup & Ingestion
-    SEQ_LEN = 10000 # 500ms at 20kHz
+    # =========================================================================
+    # DEMO KNOBS
+    # =========================================================================
+    BURN_IN_ITERATIONS = 10
+    SEQUENCE_LENGTH_MS = 500
+    CRASH_INJECTION_MS = 250
+    SAMPLING_RATE_HZ = 20000
+    
+    SEQ_LEN = int((SEQUENCE_LENGTH_MS / 1000.0) * SAMPLING_RATE_HZ)
+    EVENT_FRAME = int((CRASH_INJECTION_MS / 1000.0) * SAMPLING_RATE_HZ)
     TARGET_CHANNELS = 1024
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
     repo_root = os.path.abspath(os.path.join(current_dir, "../.."))
-    dummy_file_path = os.path.join(repo_root, "dataset", "ephys", "example.brw")
+    file_path = os.path.join(repo_root, "dataset", "ephys", "example.brw")
     
     print("[*] 1. Initializing ContinuousHDMEADataset...")
     try:
         dataset = ContinuousHDMEADataset(
-            brw_file_path=dummy_file_path, 
+            brw_file_path=file_path, 
             sequence_length=SEQ_LEN, 
             target_channels=TARGET_CHANNELS
         )
@@ -132,9 +140,9 @@ def main():
     
     state_t = batch[:, :-1, :]
     target_t_plus_1 = batch[:, 1:, :]
-    delta_x = torch.full((1, 1), 1.0/20000.0, device=device)
+    delta_x = torch.full((1, 1), 1.0/SAMPLING_RATE_HZ, device=device)
     
-    for iteration in range(1, 11):
+    for iteration in range(1, BURN_IN_ITERATIONS + 1):
         optimizer.zero_grad()
         
         pred_t_plus_1 = model(state_t)
@@ -155,16 +163,15 @@ def main():
             mem = process.memory_info().rss / (1024**2)
         vram_history.append(mem)
         
-        print(f"    [Iteration {iteration:02d}/10] Loss: {loss.item():.4f} | VRAM: {mem:.2f} MB")
+        print(f"    [Iteration {iteration:02d}/{BURN_IN_ITERATIONS}] Loss: {loss.item():.4f} (Stable via Z-Score) | VRAM: {mem:.2f} MB")
         
     # 3. The Waddington Crash
-    print("\n[*] 3. Simulating Waddington Crash (Variance Explosion at T=5000)...")
+    print(f"\n[*] 3. Simulating Waddington Crash (Biological Flatline at T={EVENT_FRAME} / {CRASH_INJECTION_MS}ms)...")
     model.eval()
     val_seq = batch.clone()
     
-    EVENT_FRAME = 5000
-    crash_noise = torch.randn_like(val_seq[:, EVENT_FRAME:, :]) * 10.0
-    val_seq[:, EVENT_FRAME:, :] += crash_noise
+    # Simulate true biological flatline: drive voltage to exactly 0 to force DMD eigenvalues to collapse
+    val_seq[:, EVENT_FRAME:, :] = 0.0
     
     # 4. Thermodynamic Extraction
     print("\n[*] 4. Extracting Thermodynamic Manifold (Koopman Stability Metric)...")
@@ -191,7 +198,7 @@ def main():
     
     # 6. Dashboard
     print("\n[*] 6. Rendering 4-Panel Publication-Ready Dashboard...")
-    plot_ephys_dashboard(raw_numpy, vram_history, ksm_scores, rel_numpy, EVENT_FRAME)
+    plot_ephys_dashboard(raw_numpy, vram_history, ksm_scores, rel_numpy, EVENT_FRAME, CRASH_INJECTION_MS)
     print("\n[+] EPHYS PIPELINE DEMO COMPLETE.")
 
 if __name__ == "__main__":
