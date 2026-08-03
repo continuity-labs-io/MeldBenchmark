@@ -20,38 +20,7 @@ matplotlib.use("Agg")
 from src.models.spike_forecaster import SpikeForecaster
 from src.utils.device import get_optimal_device
 
-class MambaLRP_FirstOrder:
-    """
-    Approximates Layer-wise Relevance Propagation (LRP) for Mamba-2 
-    using First-Order Taylor Decomposition (Input * Gradient).
-    """
-    def __init__(self, model):
-        self.model = model
-        self.model.eval()
-
-    def attribute(self, x, target_time_step):
-        # Ensure input requires gradients for attribution
-        x.requires_grad_(True)
-        
-        if x.grad is not None:
-            x.grad.zero_()
-
-        # Forward pass through the continuous engine
-        predictions = self.model(x)
-
-        # We want to know what caused the structural wobble at target_time_step
-        # We take the L2 norm of the prediction at that specific biological frame
-        target_prediction = torch.norm(predictions[:, target_time_step, :], p=2)
-
-        # Propagate the relevance backward to the input
-        target_prediction.backward()
-
-        # Relevance R = Input * Gradient
-        # Highlights features that had BOTH high amplitude AND high gradient impact
-        relevance = x.detach() * x.grad.detach()
-        x.requires_grad_(False)
-        
-        return relevance
+from src.metrics.mamba_lrp import MambaLRPEpsilon
 
 def plot_lrp_dashboard(raw_ephys, relevance, event_frame, filename="6_mamba_lrp_dashboard.png"):
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
@@ -97,7 +66,7 @@ def main():
     
     print("\n" + "="*80)
     print(" PROJECT CHRONOS: INTERPRETABILITY DEMO")
-    print(" MambaLRP-Lite (First-Order Taylor Decomposition)")
+    print(" MambaLRPEpsilon (Exact Relevance Conservation)")
     print("="*80)
 
     TIME_STEPS = 100
@@ -118,7 +87,7 @@ def main():
     val_batch[:, EVENT_FRAME:, :] *= 0.1 
 
     print(f"[*] Executing Latent Relevance Projection on Target Frame T={EVENT_FRAME}...")
-    lrp = MambaLRP_FirstOrder(engine)
+    lrp = MambaLRPEpsilon(engine, epsilon=1e-7)
     relevance_tensor = lrp.attribute(val_batch, target_time_step=EVENT_FRAME)
     
     raw_numpy = val_batch[0].cpu().numpy()
