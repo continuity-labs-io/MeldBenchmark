@@ -82,8 +82,9 @@ class ThermodynamicMetrics:
             
             # PyDMD expects snapshots as columns: [Embed_Dim, Num_Snapshots]
             Z_np = Z.T.detach().cpu().numpy()
+            temporal_std = float(np.std(Z_np, axis=1).mean())
 
-            if np.std(Z_np) <= 1e-3:
+            if temporal_std <= 1e-3:
                 logger.debug(f"Flatline detected at frame {t}, forcing rank collapse.")
                 max_eig = 0.0
             else:
@@ -113,7 +114,7 @@ class ThermodynamicMetrics:
                 # Bound KSM smoothly [0, 1] using an exponential envelope
                 ksm = math.exp(-0.5 * abs(max_eig - 1.0))
             
-            logger.debug(f"[PyDMD] Frame {t} | std={np.std(Z_np):.6f} | max_eig={max_eig:.4f} | KSM={ksm:.4f}")
+            logger.debug(f"[PyDMD] Frame {t} | temporal_std={temporal_std:.6f} | max_eig={max_eig:.4f} | KSM={ksm:.4f}")
             ksm_scores.append(max(0.0, ksm))
         return ksm_scores
 
@@ -156,8 +157,9 @@ class ThermodynamicMetrics:
             
             # PyDMD expects snapshots as columns: [Embed_Dim, Num_Snapshots]
             Z_np = Z.T.detach().cpu().numpy()
+            temporal_std = float(np.std(Z_np, axis=1).mean())
 
-            if np.std(Z_np) <= 1e-3:
+            if temporal_std <= 1e-3:
                 max_eig = 0.0
                 lle = 0.0
             else:
@@ -178,7 +180,7 @@ class ThermodynamicMetrics:
                 # Calculate LLE
                 lle = math.log(max_eig + 1e-7) / dt
             
-            logger.debug(f"[PyDMD] Frame {t} | std={np.std(Z_np):.6f} | max_eig={max_eig:.4f} | LLE={lle:.4f}")
+            logger.debug(f"[PyDMD] Frame {t} | temporal_std={temporal_std:.6f} | max_eig={max_eig:.4f} | LLE={lle:.4f}")
             lle_scores.append(lle)
             
         return lle_scores
