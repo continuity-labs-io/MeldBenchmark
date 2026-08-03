@@ -40,7 +40,14 @@ def plot_ephys_dashboard(raw_ephys, vram_history, ksm_scores, relevance, event_f
     
     # --- Panel 1: Raw Telemetry ---
     ax1 = axes[0]
-    ax1.imshow(raw_sub.T, aspect="auto", cmap="magma", 
+    
+    event_idx = int(event_frame / downsample)
+    if event_idx > 0:
+        vmax_raw = np.percentile(np.abs(raw_sub[:event_idx]), 95)
+    else:
+        vmax_raw = np.max(np.abs(raw_sub))
+        
+    ax1.imshow(raw_sub.T, aspect="auto", cmap="magma", vmin=-vmax_raw, vmax=vmax_raw,
                extent=[time_axis[0], time_axis[-1], 64, 0])
     ax1.axvline(x=event_time, color="white", linestyle="--", linewidth=2, label=f"Waddington Crash (T={crash_ms}ms)")
     ax1.set_title("Panel 1: Raw HD-MEA 20kHz Telemetry (Subsampled to 64 Ch)", color="white", fontweight="bold")
@@ -170,8 +177,8 @@ def main():
     model.eval()
     val_seq = batch.clone()
     
-    # Simulate true biological flatline: drive voltage to exactly 0 to force DMD eigenvalues to collapse
-    val_seq[:, EVENT_FRAME:, :] = 0.0
+    # Simulate true biological flatline: drive voltage to near 0 to force DMD eigenvalues to collapse
+    val_seq[:, EVENT_FRAME:, :] *= 0.001
     
     # 4. Thermodynamic Extraction
     print("\n[*] 4. Extracting Thermodynamic Manifold (Koopman Stability Metric)...")
