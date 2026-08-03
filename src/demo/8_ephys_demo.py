@@ -54,39 +54,39 @@ def plot_ephys_dashboard(raw_ephys, vram_history, ksm_scores, relevance, event_f
     ax1.set_ylabel("Electrode Array")
     ax1.legend(loc="upper right")
     
-    # --- Panel 2: VRAM Hardware Monitor ---
+    # --- Panel 2: Thermodynamic Extraction (KSM) ---
     ax2 = axes[1]
-    ax2.plot(range(1, len(vram_history)+1), vram_history, color="cyan", marker="o", linewidth=2)
-    ax2.set_title("Panel 2: Hardware Monitor - Constant O(1) Memory Footprint", color="white", fontweight="bold")
-    ax2.set_ylabel("Peak VRAM (MB)")
-    ax2.set_xlabel("Training Iterations")
-    ax2.set_ylim(0, max(vram_history) * 1.5 if vram_history else 100)
+    ksm_time = np.arange(len(ksm_scores)) / 20000.0
+    ax2.plot(ksm_time, ksm_scores, color="springgreen", linewidth=2)
+    ax2.axvline(x=event_time, color="white", linestyle="--", linewidth=2)
+    ax2.axhline(y=0.9, color="crimson", linestyle=":", linewidth=2, label="Stability Collapse Threshold")
+    ax2.set_title("Panel 2: PyDMD Koopman Stability Metric (KSM)", color="white", fontweight="bold")
+    ax2.set_ylabel("Stable Eigenvalue Bound")
+    ax2.set_xlabel("Time (Seconds)")
+    ax2.legend(loc="lower left")
     ax2.grid(True, alpha=0.2)
     
-    # --- Panel 3: Thermodynamic Extraction (KSM) ---
+    # --- Panel 3: MambaLRP Attribution ---
     ax3 = axes[2]
-    ksm_time = np.arange(len(ksm_scores)) / 20000.0
-    ax3.plot(ksm_time, ksm_scores, color="springgreen", linewidth=2)
-    ax3.axvline(x=event_time, color="white", linestyle="--", linewidth=2)
-    ax3.axhline(y=0.9, color="crimson", linestyle=":", linewidth=2, label="Stability Collapse Threshold")
-    ax3.set_title("Panel 3: PyDMD Koopman Stability Metric (KSM)", color="white", fontweight="bold")
-    ax3.set_ylabel("Stable Eigenvalue Bound")
-    ax3.set_xlabel("Time (Seconds)")
-    ax3.legend(loc="lower left")
-    ax3.grid(True, alpha=0.2)
-    
-    # --- Panel 4: MambaLRP Attribution ---
-    ax4 = axes[3]
     vmax = np.max(np.abs(rel_sub)) * 0.5 
-    im4 = ax4.imshow(rel_sub.T, aspect="auto", cmap="coolwarm", vmin=-vmax, vmax=vmax,
+    im3 = ax3.imshow(rel_sub.T, aspect="auto", cmap="coolwarm", vmin=-vmax, vmax=vmax,
                      extent=[time_axis[0], time_axis[-1], 64, 0])
-    ax4.axvline(x=event_time, color="white", linestyle="--", linewidth=2)
-    ax4.set_title(f"Panel 4: MambaLRPEpsilon Root Cause Attribution (Targeted at Crash Frame)", color="white", fontweight="bold")
-    ax4.set_xlabel("Continuous Time Context (Seconds)")
-    ax4.set_ylabel("Electrode Array")
+    ax3.axvline(x=event_time, color="white", linestyle="--", linewidth=2)
+    ax3.set_title(f"Panel 3: MambaLRPEpsilon Root Cause Attribution (Targeted at Crash Frame)", color="white", fontweight="bold")
+    ax3.set_xlabel("Continuous Time Context (Seconds)")
+    ax3.set_ylabel("Electrode Array")
     
-    cbar = fig.colorbar(im4, ax=ax4, orientation='vertical', pad=0.01)
+    cbar = fig.colorbar(im3, ax=ax3, orientation='vertical', pad=0.01)
     cbar.set_label("Predictive Relevance", color="white")
+    
+    # --- Panel 4: VRAM Hardware Monitor ---
+    ax4 = axes[3]
+    ax4.plot(range(1, len(vram_history)+1), vram_history, color="cyan", marker="o", linewidth=2)
+    ax4.set_title("Panel 4: Hardware Monitor - Constant O(1) Memory Footprint", color="white", fontweight="bold")
+    ax4.set_ylabel("Peak VRAM (MB)")
+    ax4.set_xlabel("Training Iterations")
+    ax4.set_ylim(0, max(vram_history) * 1.5 if vram_history else 100)
+    ax4.grid(True, alpha=0.2)
     
     plt.tight_layout()
     plot_path = os.path.join(output_dir, filename)
