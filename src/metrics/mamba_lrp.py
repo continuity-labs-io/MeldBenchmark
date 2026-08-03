@@ -78,7 +78,7 @@ class MambaLRPEpsilon:
         R_memory = torch.zeros_like(R_hidden[:, 0, :])
         
         # Approximate memory retention scalar for stable biological dynamics
-        retention_factor = 0.9 
+        retention_factor = 0.98 
         
         for t in range(x.shape[1] - 1, -1, -1):
             # Total relevance at time t = Relevance from output + Relevance passed back from future memory
