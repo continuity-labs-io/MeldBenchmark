@@ -80,16 +80,19 @@ class ThermodynamicMetrics:
             # PyDMD expects snapshots as columns: [Embed_Dim, Num_Snapshots]
             Z_np = Z.T.detach().cpu().numpy()
 
-            try:
-                # OptDMD is highly robust to sensor noise
-                dmd = OptDMD(svd_rank=0)
-                dmd.fit(Z_np)
-                
-                eigenvalues = dmd.eigs
-                max_eig = float(np.max(np.abs(eigenvalues)))
-            except Exception:
-                # Graceful fallback for stable, rank-deficient biological frames
-                max_eig = 1.0
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                try:
+                    # OptDMD is highly robust to sensor noise
+                    dmd = OptDMD(svd_rank=0)
+                    dmd.fit(Z_np)
+                    
+                    eigenvalues = dmd.eigs
+                    max_eig = float(np.max(np.abs(eigenvalues)))
+                except Exception:
+                    # Graceful fallback for stable, rank-deficient biological frames
+                    max_eig = 1.0
 
             # Bound KSM smoothly [0, 1] using an exponential envelope
             ksm = math.exp(-0.5 * abs(max_eig - 1.0))
@@ -136,16 +139,19 @@ class ThermodynamicMetrics:
             # PyDMD expects snapshots as columns: [Embed_Dim, Num_Snapshots]
             Z_np = Z.T.detach().cpu().numpy()
 
-            try:
-                # OptDMD is highly robust to sensor noise
-                dmd = OptDMD(svd_rank=0)
-                dmd.fit(Z_np)
-                
-                eigenvalues = dmd.eigs
-                max_eig = float(np.max(np.abs(eigenvalues)))
-            except Exception:
-                # Graceful fallback for stable, rank-deficient biological frames
-                max_eig = 1.0
+            import warnings
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                try:
+                    # OptDMD is highly robust to sensor noise
+                    dmd = OptDMD(svd_rank=0)
+                    dmd.fit(Z_np)
+                    
+                    eigenvalues = dmd.eigs
+                    max_eig = float(np.max(np.abs(eigenvalues)))
+                except Exception:
+                    # Graceful fallback for stable, rank-deficient biological frames
+                    max_eig = 1.0
 
             # Calculate LLE
             lle = math.log(max_eig + 1e-7) / dt
