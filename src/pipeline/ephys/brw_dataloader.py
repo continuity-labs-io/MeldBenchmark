@@ -2,7 +2,7 @@ import os
 import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
-import spikeinterface.extractors as se
+import h5py
 
 import logging
 logger = logging.getLogger(__name__)
@@ -10,23 +10,11 @@ logger = logging.getLogger(__name__)
 class ContinuousHDMEADataset(Dataset):
     """
     A PyTorch Dataset for loading continuous high-density electrophysiology data
-    from raw 3Brain (.brw) files. This is designed to simulate data topology of 
-    a 1,024-channel MaxOne CMOS array streaming at 20kHz for continuous-time 
-    state-space models (e.g., Mamba-2).
-
-    Dataset source: https://zenodo.org/records/13908319
+    from raw 3Brain (.brw) files natively via HDF5.
     
-    The .brw (BrainWave) format is a proprietary data standard developed by 3Brain.
-    Under the hood, it is an HDF5 (Hierarchical Data Format version 5) file, which
-    is an efficient binary format designed to store and organize large amounts of data.
-    It contains hierarchical groups and datasets including:
-      - Raw voltage traces (typically stored as a massive 2D array: Time x Channels)
-      - Metadata such as sampling frequency, resolution, and recording configuration
-      - Spatial layouts mapping channels to physical electrode coordinates
-      
-    By using spikeinterface, we abstract away the low-level HDF5 reading, allowing us
-    to lazily slice directly into this binary blob without loading the entire multi-GB
-    recording into memory.
+    This bypasses spikeinterface metadata constraints and streams the 20kHz 
+    telemetry directly from the /3BData/Raw binary block, applying Z-score 
+    normalization to stabilize continuous-time state-space models.
     """
     def __init__(self, brw_file_path: str, sequence_length: int = 10000, target_channels: int = 1024):
         """
@@ -39,13 +27,16 @@ class ContinuousHDMEADataset(Dataset):
         self.brw_file_path = brw_file_path
         self.sequence_length = sequence_length
         self.target_channels = target_channels
+        self.total_channels = 4096
         
-        # Load the recording lazily using spikeinterface
-        self.recording = se.read_biocam(self.brw_file_path)
+        # Open the HDF5 file natively in read-only mode
+        self.file = h5py.File(self.brw_file_path, 'r')
+        self.raw_dataset = self.file['/3BData/Raw']
         
-        # Extract total frames and sampling rate
-        self.total_frames = self.recording.get_num_frames()
-        self.sampling_rate = self.recording.get_sampling_frequency()
+        # Calculate total frames from the massive 1D array
+        total_elements = self.raw_dataset.shape[0]
+        self.total_frames = total_elements // self.total_channels
+        self.sampling_rate = 20000.0
         
         # Calculate number of available non-overlapping chunks
         self.num_chunks = int(self.total_frames // self.sequence_length)
@@ -56,13 +47,8 @@ class ContinuousHDMEADataset(Dataset):
         
     def __getitem__(self, idx):
         """
-        Fetches a temporal chunk of traces and subsamples spatially.
-        
-        Args:
-            idx: Index of the non-overlapping chunk.
-            
-        Returns:
-            torch.Tensor of shape [Sequence_Length, Channels] in float32.
+        Fetches a temporal chunk of traces, reshapes it, and applies 
+        robust Z-score normalization for the Mamba-2 engine.
         """
         if idx >= self.num_chunks or idx < 0:
             raise IndexError("Dataset index out of range.")
@@ -70,15 +56,27 @@ class ContinuousHDMEADataset(Dataset):
         start_frame = idx * self.sequence_length
         end_frame = start_frame + self.sequence_length
         
-        # Fetch the temporal chunk of traces using get_traces
-        # get_traces returns shape [num_frames, num_channels]
-        traces = self.recording.get_traces(start_frame=start_frame, end_frame=end_frame)
+        # Slice the 1D dataset and reshape to [Frames, Channels]
+        start_idx = start_frame * self.total_channels
+        end_idx = end_frame * self.total_channels
         
-        # Subsample the spatial dimension to the target_channels
-        traces = traces[:, :self.target_channels]
+        raw_chunk = self.raw_dataset[start_idx:end_idx]
+        raw_chunk = raw_chunk.reshape(self.sequence_length, self.total_channels)
         
-        # Convert to float32 and return as PyTorch tensor
-        return torch.tensor(traces, dtype=torch.float32)
+        # Spatial Subsampling
+        traces = raw_chunk[:, :self.target_channels]
+        
+        # Robust Z-Score Normalization
+        mean_val = traces.mean()
+        std_val = traces.std()
+        normalized_traces = (traces - mean_val) / (std_val + 1e-5)
+        
+        return torch.tensor(normalized_traces, dtype=torch.float32)
+
+    def __del__(self):
+        """Ensure the HDF5 file is cleanly closed."""
+        if hasattr(self, 'file') and self.file:
+            self.file.close()
 
 if __name__ == "__main__":
     # Define default directory relative to the repository root
