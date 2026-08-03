@@ -11,8 +11,30 @@ import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import psutil
+import logging
 
 matplotlib.use("Agg")
+
+def setup_diagnostic_logger():
+    logger = logging.getLogger("DiagnosticLogger")
+    logger.setLevel(logging.DEBUG)
+    
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    
+    os.makedirs("output", exist_ok=True)
+    fh = logging.FileHandler("output/ephys_diagnostic.log")
+    fh.setLevel(logging.DEBUG)
+    
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    ch.setFormatter(formatter)
+    fh.setFormatter(formatter)
+    
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    return logger
+
+logger = setup_diagnostic_logger()
 
 from src.pipeline.ephys.brw_dataloader import ContinuousHDMEADataset
 from src.models.spike_forecaster import SpikeForecaster
@@ -130,6 +152,9 @@ def main():
         batch = torch.randn(1, SEQ_LEN, TARGET_CHANNELS, device=device).abs() * 0.5
         
     print(f"    -> Extracted sequence shape: {batch.shape}")
+    logger.info(f"Data Ingestion Audit: shape={batch.shape}, dtype={batch.dtype}, "
+                f"min={batch.min().item():.4f}, max={batch.max().item():.4f}, "
+                f"mean={batch.mean().item():.4f}, std={batch.std().item():.4f}")
     
     # 2. Burn-in Training
     print("\n[*] 2. Initializing SpikeForecaster (Mamba-2)...")
@@ -158,8 +183,10 @@ def main():
         loss, _ = criterion(state_t, target_t_plus_1, pred_t_plus_1, state_t, delta_x)
         
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
+        
+        logger.debug(f"Burn-in Audit [Iter {iteration}]: loss={loss.item():.4f}, grad_norm={grad_norm.item():.4f}")
         
         # Manual VRAM tracking
         if device.type == "cuda":
@@ -178,7 +205,12 @@ def main():
     val_seq = batch.clone()
     
     # Simulate true biological flatline: drive voltage to near 0 to force DMD eigenvalues to collapse
-    val_seq[:, EVENT_FRAME:, :] *= 0.001
+    val_seq[:, EVENT_FRAME:, :] = 0.0
+    
+    before_crash = val_seq[:, EVENT_FRAME-1000:EVENT_FRAME, :]
+    after_crash = val_seq[:, EVENT_FRAME:EVENT_FRAME+1000, :]
+    logger.info(f"Crash Audit: Before crash mean={before_crash.mean().item():.6f}, std={before_crash.std().item():.6f}")
+    logger.info(f"Crash Audit: After crash mean={after_crash.mean().item():.6f}, std={after_crash.std().item():.6f}")
     
     # 4. Thermodynamic Extraction
     print("\n[*] 4. Extracting Thermodynamic Manifold (Koopman Stability Metric)...")
@@ -191,7 +223,9 @@ def main():
     # Decimate by 50 to compute fast (10,000 fits takes minutes otherwise)
     decimation_factor = 50
     z_seq_decimated = hidden_states[0, ::decimation_factor, :]
-    ksm_scores_decimated = metrics.calculate_ksm(z_seq_decimated, window_size=5)
+    
+    # Pass debug_crash_frame as the decimated frame index of the crash
+    ksm_scores_decimated = metrics.calculate_ksm(z_seq_decimated, window_size=5, debug_crash_frame=(EVENT_FRAME // decimation_factor))
     
     ksm_scores = np.interp(np.arange(SEQ_LEN), np.arange(len(ksm_scores_decimated))*decimation_factor, ksm_scores_decimated)
     
@@ -199,6 +233,8 @@ def main():
     print("\n[*] 5. Executing MambaLRPEpsilon Root Cause Attribution...")
     lrp = MambaLRPEpsilon(model)
     relevance_tensor = lrp.attribute(val_seq, target_time_step=EVENT_FRAME)
+    
+    logger.info(f"LRP Audit: Total sum of relevance_tensor={relevance_tensor.sum().item():.4f}")
     
     raw_numpy = val_seq[0].cpu().numpy()
     rel_numpy = relevance_tensor[0].cpu().numpy()

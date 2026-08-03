@@ -1,6 +1,9 @@
 import torch
 import torch.nn.functional as F
+import logging
 from src.config import settings
+
+logger = logging.getLogger("DiagnosticLogger")
 
 
 class ThermodynamicMetrics:
@@ -39,7 +42,7 @@ class ThermodynamicMetrics:
         # Pad initial frames to maintain temporal sequence length
         return [csd_scores[0]] * (window_size - 1) + csd_scores
 
-    def calculate_ksm(self, z_sequence, window_size=settings.KSM_WINDOW_SIZE):
+    def calculate_ksm(self, z_sequence, window_size=settings.KSM_WINDOW_SIZE, debug_crash_frame=None):
         """
         The code snippet implements Dynamic Mode Decomposition using a truncated Singular Value Decomposition. 
         By decomposing the sliding window of latent states X, the algorithm approximates the local linear 
@@ -80,9 +83,10 @@ class ThermodynamicMetrics:
             # PyDMD expects snapshots as columns: [Embed_Dim, Num_Snapshots]
             Z_np = Z.T.detach().cpu().numpy()
 
-            import warnings
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
+            if np.std(Z_np) <= 1e-3:
+                logger.debug(f"Flatline detected at frame {t}, forcing rank collapse.")
+                max_eig = 0.0
+            else:
                 try:
                     # OptDMD is highly robust to sensor noise
                     dmd = OptDMD(svd_rank=0)
@@ -90,12 +94,26 @@ class ThermodynamicMetrics:
                     
                     eigenvalues = dmd.eigs
                     max_eig = float(np.max(np.abs(eigenvalues)))
-                except Exception:
-                    # Graceful fallback for stable, rank-deficient biological frames
-                    max_eig = 1.0
+                    
+                    if debug_crash_frame is not None:
+                        # Log the sliding window right before the crash and right after
+                        if t == debug_crash_frame - 1:
+                            logger.debug(f"PyDMD Audit [BEFORE crash, t={t}]: eigs={eigenvalues}, max_eig={max_eig}")
+                        elif t == debug_crash_frame + 1:
+                            logger.debug(f"PyDMD Audit [AFTER crash, t={t}]: eigs={eigenvalues}, max_eig={max_eig}")
+                            
+                except Exception as e:
+                    logger.error(f"PyDMD Failed at frame {t}: {e}")
+                    # Force drop in thermodynamic stability on mathematical failure
+                    max_eig = 0.0
 
-            # Bound KSM smoothly [0, 1] using an exponential envelope
-            ksm = math.exp(-0.5 * abs(max_eig - 1.0))
+            if max_eig == 0.0:
+                ksm = 0.0
+            else:
+                # Bound KSM smoothly [0, 1] using an exponential envelope
+                ksm = math.exp(-0.5 * abs(max_eig - 1.0))
+            
+            logger.debug(f"[PyDMD] Frame {t} | std={np.std(Z_np):.6f} | max_eig={max_eig:.4f} | KSM={ksm:.4f}")
             ksm_scores.append(max(0.0, ksm))
         return ksm_scores
 
@@ -139,22 +157,28 @@ class ThermodynamicMetrics:
             # PyDMD expects snapshots as columns: [Embed_Dim, Num_Snapshots]
             Z_np = Z.T.detach().cpu().numpy()
 
-            import warnings
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                try:
-                    # OptDMD is highly robust to sensor noise
-                    dmd = OptDMD(svd_rank=0)
-                    dmd.fit(Z_np)
-                    
-                    eigenvalues = dmd.eigs
-                    max_eig = float(np.max(np.abs(eigenvalues)))
-                except Exception:
-                    # Graceful fallback for stable, rank-deficient biological frames
-                    max_eig = 1.0
+            if np.std(Z_np) <= 1e-3:
+                max_eig = 0.0
+                lle = 0.0
+            else:
+                import warnings
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    try:
+                        # OptDMD is highly robust to sensor noise
+                        dmd = OptDMD(svd_rank=0)
+                        dmd.fit(Z_np)
+                        
+                        eigenvalues = dmd.eigs
+                        max_eig = float(np.max(np.abs(eigenvalues)))
+                    except Exception:
+                        # Graceful fallback for stable, rank-deficient biological frames
+                        max_eig = 1.0
 
-            # Calculate LLE
-            lle = math.log(max_eig + 1e-7) / dt
+                # Calculate LLE
+                lle = math.log(max_eig + 1e-7) / dt
+            
+            logger.debug(f"[PyDMD] Frame {t} | std={np.std(Z_np):.6f} | max_eig={max_eig:.4f} | LLE={lle:.4f}")
             lle_scores.append(lle)
             
         return lle_scores
