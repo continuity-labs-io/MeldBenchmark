@@ -13,6 +13,8 @@ class ContinuousHDMEADataset(Dataset):
     from raw 3Brain (.brw) files. This is designed to simulate data topology of 
     a 1,024-channel MaxOne CMOS array streaming at 20kHz for continuous-time 
     state-space models (e.g., Mamba-2).
+
+    Dataset source: https://zenodo.org/records/13908319
     
     The .brw (BrainWave) format is a proprietary data standard developed by 3Brain.
     Under the hood, it is an HDF5 (Hierarchical Data Format version 5) file, which
