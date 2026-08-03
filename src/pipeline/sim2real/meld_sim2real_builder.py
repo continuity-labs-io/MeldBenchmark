@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     """
@@ -8,7 +11,7 @@ def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     Generates a 15-minute multi-scale tensor for 1 cell.
     Demonstrates the Hierarchical Entrainment Crash.
     """
-    print("Booting Xi-114 Physics Engine...")
+    logger.info("Booting Xi-114 Physics Engine...")
 
     # 1. TIME CONSTANTS (The Multi-Scale Problem)
     burst_freq_hz = 500
@@ -38,7 +41,7 @@ def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     # [TASK 1] SIGMA (Phase Structure - 100D)
     # ML TEAM: Replace random drift with CZ Biohub real PCA embeddings
     # ---------------------------------------------------------
-    print("Generating Sigma (100D)...")
+    logger.info("Generating Sigma (100D)...")
     sigma_cols = [f"Sigma_PC{i:03d}" for i in range(1, 101)]
     # Synthetic: smooth drift, accelerating after crash
     drift = np.cumsum(np.random.normal(0, 0.005, (total_rows, 100)), axis=0)
@@ -49,7 +52,7 @@ def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     # [TASK 2] OMEGA (Voltage - 2D)
     # ML TEAM: Replace with Michael Lin ASAP6c/mScarlet3 real trace distributions
     # ---------------------------------------------------------
-    print("Generating Omega (2D)...")
+    logger.info("Generating Omega (2D)...")
     # Red Baseline (Stable)
     omega_red = np.random.normal(1.0, 0.01, total_rows)
 
@@ -66,7 +69,7 @@ def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     # [TASK 3] PSI (RNA Software - 12D)
     # ML TEAM: Replace Poisson generator with Gao/Wyss-Coray real scRNA-seq counts
     # ---------------------------------------------------------
-    print("Generating Psi (12D)...")
+    logger.info("Generating Psi (12D)...")
     psi_cols = [
         "Psi_NFE2L2",
         "Psi_TP53",
@@ -105,7 +108,7 @@ def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
     cols = ["Time_ms", "Minute", "Omega_VoltGrn", "Omega_VoltRed"] + psi_cols + sigma_cols
     df = pd.concat([df, omega_df, psi_df, sigma_df], axis=1)[cols]
 
-    print(f"Success! Generated Sim2Real Tensor: {total_rows} rows x {len(cols)} columns.")
+    logger.info(f"Success! Generated Sim2Real Tensor: {total_rows} rows x {len(cols)} columns.")
     return df
 
 
@@ -114,4 +117,4 @@ meld_tensor = generate_meld_sim2real_stub()
 
 # Save a snapshot so the ML team can visualize the NaN gaps
 meld_tensor.head(2255).to_csv("dataset/MELD_Xi114_Sim2Real_Stub.csv", index=False)
-print("Saved to dataset/MELD_Xi114_Sim2Real_Stub.csv")
+logger.info("Saved to dataset/MELD_Xi114_Sim2Real_Stub.csv")

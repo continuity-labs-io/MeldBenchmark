@@ -1,6 +1,9 @@
 import torch
 import torch.nn as nn
 
+import logging
+logger = logging.getLogger(__name__)
+
 try:
     from mamba_ssm import Mamba
 except ImportError:
@@ -49,7 +52,7 @@ class HardwareMonitor:
             seq_lengths = [100, 500, 1000, 2000, 4000, 8000]
 
         if self.device.type not in ["cuda", "mps"]:
-            print(
+            logger.info(
                 "Warning: Hardware acceleration not available. "
                 "Returning mock lists for CPU demonstration."
             )
@@ -76,7 +79,7 @@ class HardwareMonitor:
                 expand=self.expand,
             ).to(self.device)
         else:
-            print("Warning: mamba_ssm not installed, using mock memory scaling for Mamba.")
+            logger.warning("Warning: mamba_ssm not installed, using mock memory scaling for Mamba.")
             mamba = None
 
         mamba_vram = []

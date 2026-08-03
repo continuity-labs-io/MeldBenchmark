@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 import scipy.signal as signal
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class OmegaBioelectricLoader:
     def __init__(self, sample_rate_hz=500, crash_minute=10):
@@ -14,7 +17,7 @@ class OmegaBioelectricLoader:
         self.crash_minute = crash_minute
         # Target proxy: Neurodata Without Borders (NWB) GEVI datasets or Allen Brain Observatory
         self.source_url = "s3://stanford-lin-lab/asap6c-in-vivo-traces.nwb"
-        print(
+        logger.info(
             f"[INIT] Omega Dataloader targeting proxy: {self.source_url} at {self.sample_rate_hz}Hz"
         )
 
@@ -24,7 +27,7 @@ class OmegaBioelectricLoader:
         Connect to a public Neurodata Without Borders (.nwb) file containing real patch-clamp
         or high-speed optical voltage traces. Extract the raw action potential waveforms.
         """
-        print("[NETWORK] Mocking kilohertz voltage trace ingestion...")
+        logger.info("[NETWORK] Mocking kilohertz voltage trace ingestion...")
 
         # Simulating baseline membrane potential with sparse action potentials
 
@@ -46,7 +49,7 @@ class OmegaBioelectricLoader:
         Organoids move and swell. We simulate this macroscopic wobble, apply it to BOTH
         the Green (ASAP6c) and Red (mScarlet3) channels, and prove that division cancels it out.
         """
-        print("[PHYSICS] Injecting mechanical tissue drift and thermodynamic crash variance...")
+        logger.info("[PHYSICS] Injecting mechanical tissue drift and thermodynamic crash variance...")
 
         # 1. The Mechanical Wobble (Cells shifting out of focus)
         # A slow, wandering sine wave that hits BOTH color channels equally
@@ -89,7 +92,7 @@ class OmegaBioelectricLoader:
 # EXECUTION (Drop this in the Jupyter Notebook)
 # ==========================================
 if __name__ == "__main__":
-    print("Initializing MELD Master Clock (500Hz Bursts)...")
+    logger.info("Initializing MELD Master Clock (500Hz Bursts)...")
     master_clock_ms = []
     time_minutes = []
 
@@ -107,8 +110,8 @@ if __name__ == "__main__":
     df_omega = loader.apply_hardware_physics(raw_spikes, time_minutes)
     final_df = loader.align_to_master_clock(df_omega, master_clock_ms)
 
-    print("\n[SUCCESS] Sim2Real Omega Tensor Generated.")
-    print("Pre-Crash (Stable Normalized Baseline):")
-    print(final_df.head(3))
-    print("\nPost-Crash (Variance Explosion at Minute 10):")
-    print(final_df.iloc[4500:4503])
+    logger.info("\n[SUCCESS] Sim2Real Omega Tensor Generated.")
+    logger.info("Pre-Crash (Stable Normalized Baseline):")
+    logger.info(final_df.head(3))
+    logger.info("\nPost-Crash (Variance Explosion at Minute 10):")
+    logger.info(final_df.iloc[4500:4503])

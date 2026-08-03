@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 import torch
 
+import logging
+logger = logging.getLogger(__name__)
+
 class StateSpacePointProcess:
     """
     Models discrete transcriptomic flashes as a continuous-time Marked Point Process.
@@ -74,10 +77,10 @@ class PsiTranscriptomicLoader:
             "APOE", "IL6", "GFAP", "MAPT",
             "NANOG", "CASP3", "CAS13", "GAPDH",
         ]
-        print(f"[INIT] Psi S2P2 Loader targeting proxy: {self.source_url}")
+        logger.info(f"[INIT] Psi S2P2 Loader targeting proxy: {self.source_url}")
 
     def fetch_and_filter_h5ad(self):
-        print("[NETWORK] Mocking lazy stream from .h5ad AnnData store...")
+        logger.info("[NETWORK] Mocking lazy stream from .h5ad AnnData store...")
         base_expression = {
             "NFE2L2": 12.0, "TP53": 2.0, "CDKN2A": 0.5, "TREM2": 8.0,
             "APOE": 25.0, "IL6": 1.0, "GFAP": 40.0, "MAPT": 30.0,
@@ -103,5 +106,5 @@ if __name__ == "__main__":
     # Execution Demo
     loader = PsiTranscriptomicLoader(crash_minute=10)
     tensor = loader.build_continuous_event_tensor()
-    print("Sample Event Stream [Time_ms, Gene_Index, Intensity]:")
-    print(tensor[:5]) # Show first 5 events
+    logger.info("Sample Event Stream [Time_ms, Gene_Index, Intensity]:")
+    logger.info(tensor[:5]) # Show first 5 events

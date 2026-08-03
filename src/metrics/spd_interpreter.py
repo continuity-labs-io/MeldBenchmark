@@ -85,9 +85,9 @@ def main():
     spd_utils.load_pretrained = patched_load_pretrained
     lm_module.load_pretrained = patched_load_pretrained
     
-    print("[*] Booting Stochastic Parameter Decomposition via Goodfire API...")
-    print(f"[*] Config: {config_path.name}")
-    print(f"[*] Output Dir: {out_dir}")
+    logger.info("[*] Booting Stochastic Parameter Decomposition via Goodfire API...")
+    logger.info(f"[*] Config: {config_path.name}")
+    logger.info(f"[*] Output Dir: {out_dir}")
     # Execute the decomposition natively!
     run_lm_decomposition(config_path_or_obj=config_path)
 
@@ -315,6 +315,9 @@ losses_module.calc_faithfulness_loss = _patched_calc_faithfulness_loss
 run_spd_module.calc_faithfulness_loss = _patched_calc_faithfulness_loss
 
 import spd.utils as utils_module
+
+import logging
+logger = logging.getLogger(__name__)
 _orig_calc_kl_divergence_lm = utils_module.calc_kl_divergence_lm
 def _patched_calc_kl_divergence_lm(pred, target):
     if isinstance(pred, tuple):

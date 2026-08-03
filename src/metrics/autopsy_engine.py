@@ -2,6 +2,9 @@ import json
 import torch
 import numpy as np
 
+import logging
+logger = logging.getLogger(__name__)
+
 class ThermodynamicAutopsyEngine:
     def __init__(self, model, feature_names=None):
         self.model = model
@@ -123,4 +126,4 @@ if __name__ == "__main__":
     # Generate autopsy report
     autopsy_report = engine.generate_autopsy(x_sequence, crash_time_step)
     
-    print(json.dumps(autopsy_report, indent=2))
+    logger.info(json.dumps(autopsy_report, indent=2))

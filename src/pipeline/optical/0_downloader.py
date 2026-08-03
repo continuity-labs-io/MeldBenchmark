@@ -6,6 +6,9 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.http import MediaIoBaseDownload
 import io
 
+import logging
+logger = logging.getLogger(__name__)
+
 # Local Prototyping Parameters
 TARGET_FOLDER_ID = "1IxA6w2Z76wgiy_NNNY72GdwUK-a8VcKQ"  #  shared folder id  https://drive.google.com/drive/folders/[id]
 TARGET_CHANNEL = "ch1"
@@ -40,7 +43,7 @@ def download_mini_crop(service):
         if match:
             stack_num = int(match.group(1))
             if stack_num < MAX_FRAMES:
-                print(f"Downloading {file['name']}...")
+                logger.info(f"Downloading {file['name']}...")
                 request = service.files().get_media(fileId=file["id"])
                 file_path = os.path.join(DOWNLOAD_DIR, file["name"])
 
@@ -54,7 +57,7 @@ def download_mini_crop(service):
                 if download_count >= MAX_FRAMES:
                     break
 
-    print(f"Successfully downloaded {download_count} frames for local testing.")
+    logger.info(f"Successfully downloaded {download_count} frames for local testing.")
 
 
 if __name__ == "__main__":

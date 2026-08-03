@@ -3,6 +3,9 @@ import time
 from src.models.state_space_engine import StateSpaceEngine
 from src.metrics.metrics import ThermodynamicMetrics
 
+import logging
+logger = logging.getLogger(__name__)
+
 """
 Sample Result:
 +--------------------+--------------------+---------------+-----------------------------------+-------------------------+
@@ -98,35 +101,35 @@ def run_palc_speed_benchmark(model, device, warmup=False):
 def main():
     from src.utils.device import get_optimal_device
     device = get_optimal_device(verbose=True)
-    print(f"Using device: {device}")
+    logger.info(f"Using device: {device}")
     
     model = StateSpaceEngine(d_model=832).to(device).eval()
     
-    print("Running Accuracy Benchmark (Temporal Lag)...")
+    logger.info("Running Accuracy Benchmark (Temporal Lag)...")
     drop_frame = run_accuracy_benchmark(device)
     lag = drop_frame - 50 if drop_frame is not None else "N/A"
-    print(f"Variance explosion injected at frame 50. KSM dropped below 0.9 at frame {drop_frame}. (Lag: {lag} frames)")
+    logger.info(f"Variance explosion injected at frame 50. KSM dropped below 0.9 at frame {drop_frame}. (Lag: {lag} frames)")
     
-    print("Running 5-step warmup loop to compile hardware graphs...")
+    logger.info("Running 5-step warmup loop to compile hardware graphs...")
     run_dmd_speed_benchmark(device, warmup=True)
     run_palc_speed_benchmark(model, device, warmup=True)
     
-    print("Running DMD Speed Benchmark...")
+    logger.info("Running DMD Speed Benchmark...")
     dmd_latency = run_dmd_speed_benchmark(device)
     
-    print("Running PALC (Exact Jacobian) Speed Benchmark...")
+    logger.info("Running PALC (Exact Jacobian) Speed Benchmark...")
     palc_latency = run_palc_speed_benchmark(model, device)
     
     dmd_fps = 1000.0 / dmd_latency if dmd_latency > 0 else float('inf')
     palc_fps = 1000.0 / palc_latency if palc_latency > 0 else float('inf')
     
-    print("\n")
-    print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*15 + "+" + "-"*35 + "+" + "-"*25 + "+")
-    print(f"| {'Algorithm Name':<18} | {'Avg Latency (ms)':<18} | {'Max FPS':<13} | {'Topological Accuracy':<33} | {'100Hz Viability':<23} |")
-    print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*15 + "+" + "-"*35 + "+" + "-"*25 + "+")
-    print(f"| {'DMD (Sliding Window)':<18} | {dmd_latency:<18.2f} | {dmd_fps:<13.1f} | {f'Lagging (approx. {lag} frames)':<33} | {'Yes':<23} |")
-    print(f"| {'PALC (Exact Jacob.)':<18} | {palc_latency:<18.2f} | {palc_fps:<13.1f} | {'Instantaneous Frame-Perfect':<33} | {'No (Compute Bottleneck)':<23} |")
-    print("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*15 + "+" + "-"*35 + "+" + "-"*25 + "+")
+    logger.info("\n")
+    logger.info("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*15 + "+" + "-"*35 + "+" + "-"*25 + "+")
+    logger.info(f"| {'Algorithm Name':<18} | {'Avg Latency (ms)':<18} | {'Max FPS':<13} | {'Topological Accuracy':<33} | {'100Hz Viability':<23} |")
+    logger.info("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*15 + "+" + "-"*35 + "+" + "-"*25 + "+")
+    logger.info(f"| {'DMD (Sliding Window)':<18} | {dmd_latency:<18.2f} | {dmd_fps:<13.1f} | {f'Lagging (approx. {lag} frames)':<33} | {'Yes':<23} |")
+    logger.info(f"| {'PALC (Exact Jacob.)':<18} | {palc_latency:<18.2f} | {palc_fps:<13.1f} | {'Instantaneous Frame-Perfect':<33} | {'No (Compute Bottleneck)':<23} |")
+    logger.info("+" + "-"*20 + "+" + "-"*20 + "+" + "-"*15 + "+" + "-"*35 + "+" + "-"*25 + "+")
 
 if __name__ == '__main__':
     main()

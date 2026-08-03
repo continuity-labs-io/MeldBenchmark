@@ -4,6 +4,9 @@ import torch.nn.functional as F
 from mamba_ssm import Mamba2
 from src.config import settings
 
+import logging
+logger = logging.getLogger(__name__)
+
 class SpikeForecaster(nn.Module):
     """
     SpikeForecaster uses a Mamba-2 backbone to model continuous kinetic trajectories
@@ -66,7 +69,7 @@ class SpikeForecaster(nn.Module):
 
 
 if __name__ == "__main__":
-    print("Testing SpikeForecaster (Mamba-2) architecture...")
+    logger.info("Testing SpikeForecaster (Mamba-2) architecture...")
     from src.utils.device import get_optimal_device
     device = get_optimal_device(verbose=True)
 
@@ -84,10 +87,10 @@ if __name__ == "__main__":
         # Extract hidden states
         hidden_states = model.get_hidden_states(x)
 
-        print(f"Input shape: {x.shape}")
-        print(f"Predictions shape: {predictions.shape}")
-        print(f"Predictions min value (should be >= 0): {predictions.min().item():.4f}")
-        print(f"Hidden states shape: {hidden_states.shape}")
-        print("Test passed! Requirements satisfied.")
+        logger.info(f"Input shape: {x.shape}")
+        logger.info(f"Predictions shape: {predictions.shape}")
+        logger.info(f"Predictions min value (should be >= 0): {predictions.min().item():.4f}")
+        logger.info(f"Hidden states shape: {hidden_states.shape}")
+        logger.info("Test passed! Requirements satisfied.")
     except Exception as e:
-        print(f"Test failed or skipped due to environment constraints: {e}")
+        logger.error(f"Test failed or skipped due to environment constraints: {e}")

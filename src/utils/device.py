@@ -1,5 +1,8 @@
 import torch
 
+import logging
+logger = logging.getLogger(__name__)
+
 def get_optimal_device(verbose: bool = False, allow_mps: bool = True) -> torch.device:
     """
     Detects and returns the best available PyTorch device (CUDA, MPS, or CPU).
@@ -19,6 +22,6 @@ def get_optimal_device(verbose: bool = False, allow_mps: bool = True) -> torch.d
         device = torch.device("cpu")
         
     if verbose:
-        print(f"Using device: {device}")
+        logger.info(f"Using device: {device}")
         
     return device

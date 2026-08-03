@@ -4,6 +4,9 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 import spikeinterface.extractors as se
 
+import logging
+logger = logging.getLogger(__name__)
+
 class ContinuousHDMEADataset(Dataset):
     """
     A PyTorch Dataset for loading continuous high-density electrophysiology data
@@ -85,8 +88,8 @@ if __name__ == "__main__":
     dummy_file_path = os.path.join(default_dir, "example.brw")
     
     if not os.path.exists(dummy_file_path):
-        print(f"Warning: Dummy file not found at {dummy_file_path}.")
-        print("Please place a valid 'example.brw' file there to run the test.")
+        logger.warning(f"Warning: Dummy file not found at {dummy_file_path}.")
+        logger.info("Please place a valid 'example.brw' file there to run the test.")
     
     try:
         # Instantiate the dataset
@@ -96,18 +99,18 @@ if __name__ == "__main__":
             target_channels=1024
         )
         
-        print(f"Dataset successfully initialized.")
-        print(f"Total frames: {dataset.total_frames}")
-        print(f"Sampling rate: {dataset.sampling_rate} Hz")
-        print(f"Total chunks: {len(dataset)}")
+        logger.info(f"Dataset successfully initialized.")
+        logger.info(f"Total frames: {dataset.total_frames}")
+        logger.info(f"Sampling rate: {dataset.sampling_rate} Hz")
+        logger.info(f"Total chunks: {len(dataset)}")
         
         # Instantiate DataLoader with batch size 4
         dataloader = DataLoader(dataset, batch_size=4, shuffle=False)
         
         # Iterate over the first batch and print out the resulting tensor shape
         for batch_idx, batch in enumerate(dataloader):
-            print(f"Batch {batch_idx + 1} tensor shape: {batch.shape}")
+            logger.info(f"Batch {batch_idx + 1} tensor shape: {batch.shape}")
             break
             
     except Exception as e:
-        print(f"Failed to run the dataset test: {e}")
+        logger.error(f"Failed to run the dataset test: {e}")

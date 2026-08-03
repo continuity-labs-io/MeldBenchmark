@@ -4,6 +4,9 @@ import tifffile
 import numpy as np
 from torch.utils.data import Dataset, DataLoader
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class MeldTemporalDataset(Dataset):
     def __init__(self, data_dir, sequence_length=10, transform=None):
@@ -90,7 +93,7 @@ class AOLLSMDataset(Dataset):
             if not self.sample_dirs:
                 self.sample_dirs = [data_dir]
 
-        print(
+        logger.info(
             f"[INIT] AOLLSMDataset initialized with {len(self.sample_dirs)} sample(s) in: {data_dir}"
         )
 
@@ -205,14 +208,14 @@ if __name__ == "__main__":
     # 1. Test original MeldTemporalDataset if path is present (fallback to dataset/raw_tiffs if needed)
     raw_tiffs_dir = "./dataset/raw_tiffs"
     if os.path.exists(raw_tiffs_dir):
-        print(f"\n--- Testing MeldTemporalDataset on {raw_tiffs_dir} ---")
+        logger.info(f"\n--- Testing MeldTemporalDataset on {raw_tiffs_dir} ---")
         dataset_original = MeldTemporalDataset(data_dir=raw_tiffs_dir, sequence_length=10)
         dataloader_original = DataLoader(dataset_original, batch_size=1, shuffle=False)
         for batch in dataloader_original:
-            print(f"Loaded Batch Shape [Batch, Channel, Time, Z, Y, X]: {batch.shape}")
+            logger.info(f"Loaded Batch Shape [Batch, Channel, Time, Z, Y, X]: {batch.shape}")
             break
 
-        print(f"\n--- Testing AOLLSMDataset on {raw_tiffs_dir} (10 frames) ---")
+        logger.info(f"\n--- Testing AOLLSMDataset on {raw_tiffs_dir} (10 frames) ---")
         t0 = time.time()
         # Using num_frames=10 for local testing on the 10 downloaded frames
         dataset_aollsm = AOLLSMDataset(
@@ -220,10 +223,10 @@ if __name__ == "__main__":
         )
         dataloader_aollsm = DataLoader(dataset_aollsm, batch_size=1, shuffle=False)
         for batch in dataloader_aollsm:
-            print(
+            logger.info(
                 f"Loaded Batch Shape [Batch, Time, Channels, Depth, Height, Width]: {batch.shape}"
             )
-            print(f"Loaded in {time.time() - t0:.2f} seconds.")
+            logger.info(f"Loaded in {time.time() - t0:.2f} seconds.")
             break
     else:
-        print(f"Directory {raw_tiffs_dir} not found. Skipping execution test.")
+        logger.info(f"Directory {raw_tiffs_dir} not found. Skipping execution test.")

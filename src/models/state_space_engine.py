@@ -4,6 +4,9 @@ import torch.nn.functional as F
 from mamba_ssm import Mamba
 from src.config import settings
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class StateSpaceEngine(nn.Module):
     """
@@ -79,10 +82,10 @@ class StateSpaceEngine(nn.Module):
 
 
 if __name__ == "__main__":
-    print("Testing StateSpaceEngine architecture...")
+    logger.info("Testing StateSpaceEngine architecture...")
     from src.utils.device import get_optimal_device
     device = get_optimal_device(verbose=True)
-    print(f"Using device: {device}")
+    logger.info(f"Using device: {device}")
 
     try:
         model = StateSpaceEngine().to(device)
@@ -94,9 +97,9 @@ if __name__ == "__main__":
 
         loss, ksm_metric = model(x)
 
-        print(f"Input shape: {x.shape}")
-        print(f"Scalar Loss: {loss.item():.4f}")
-        print(f"KSM Metric (Frame-by-frame Cosine Distances) shape: {ksm_metric.shape}")
-        print("Test passed! Requirements satisfied.")
+        logger.info(f"Input shape: {x.shape}")
+        logger.info(f"Scalar Loss: {loss.item():.4f}")
+        logger.info(f"KSM Metric (Frame-by-frame Cosine Distances) shape: {ksm_metric.shape}")
+        logger.info("Test passed! Requirements satisfied.")
     except Exception as e:
-        print(f"Test failed or skipped due to environment constraints: {e}")
+        logger.error(f"Test failed or skipped due to environment constraints: {e}")

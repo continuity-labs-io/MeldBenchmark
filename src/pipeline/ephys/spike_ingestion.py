@@ -6,6 +6,9 @@ from pathlib import Path
 from torch.utils.data import IterableDataset, get_worker_info
 from huggingface_hub import snapshot_download
 
+import logging
+logger = logging.getLogger(__name__)
+
 class SpikeProphecyDataset(IterableDataset):
     def __init__(self, time_steps: int, split: str = "train", data_dir: str = None):
         """
@@ -25,7 +28,7 @@ class SpikeProphecyDataset(IterableDataset):
         
         if data_dir is None:
             # Download or use cached dataset
-            print("Downloading/locating mysteriousauthor/spikeprophecy-steinmetz...")
+            logger.info("Downloading/locating mysteriousauthor/spikeprophecy-steinmetz...")
             self.data_dir = Path(snapshot_download(repo_id="mysteriousauthor/spikeprophecy-steinmetz", repo_type="dataset"))
         else:
             self.data_dir = Path(data_dir)
@@ -87,7 +90,7 @@ class SpikeProphecyDataset(IterableDataset):
             # File format: session_000.npy, session_001.npy, ...
             session_file = self.data_dir / f"session_{s_idx:03d}.npy"
             if not session_file.exists():
-                print(f"Warning: {session_file} not found. Skipping.")
+                logger.warning(f"Warning: {session_file} not found. Skipping.")
                 continue
                 
             # Use mmap_mode="r" for a flat memory footprint (reads from disk lazily)
@@ -133,21 +136,21 @@ class SpikeProphecyDataset(IterableDataset):
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
     
-    print("--- Testing SpikeProphecyDataset ---")
+    logger.info("--- Testing SpikeProphecyDataset ---")
     # Initialize dataset with time_steps=10
     dataset = SpikeProphecyDataset(time_steps=10, split="train")
     
     # Use num_workers=2 to test multi-processing sharding
     dataloader = DataLoader(dataset, batch_size=32, num_workers=2)
     
-    print(f"Dataset M_max: {dataset.m_max}")
-    print(f"Total Sessions: {dataset.num_sessions}")
+    logger.info(f"Dataset M_max: {dataset.m_max}")
+    logger.info(f"Total Sessions: {dataset.num_sessions}")
     
     # Iterate a few batches to verify
     for i, batch in enumerate(dataloader):
-        print(f"Batch {i} shape: {batch.shape}, dtype: {batch.dtype}")
+        logger.info(f"Batch {i} shape: {batch.shape}, dtype: {batch.dtype}")
         # Expected shape: [32, 10, 1240]
         if i >= 2:
             break
             
-    print("Test completed successfully.")
+    logger.info("Test completed successfully.")

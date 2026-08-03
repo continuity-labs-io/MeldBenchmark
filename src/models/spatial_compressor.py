@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import timm
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class SpatialCompressor(nn.Module):
     """
@@ -64,12 +67,12 @@ class SpatialCompressor(nn.Module):
 
 if __name__ == "__main__":
     # Quick test of the architecture matching the requirements
-    print("Testing SpatialCompressor architecture...")
+    logger.info("Testing SpatialCompressor architecture...")
     model = SpatialCompressor()
     # Dummy input mirroring our dataloader format: [Batch, Time, Channels, Depth, Height, Width]
     x = torch.randn(2, 5, 2, 128, 128, 128)
-    print(f"Input shape: {x.shape}")
+    logger.info(f"Input shape: {x.shape}")
 
     out = model(x)
-    print(f"Output shape: {out.shape}")
-    print("Test passed! Output matches [Batch, Time, 768]")
+    logger.info(f"Output shape: {out.shape}")
+    logger.info("Test passed! Output matches [Batch, Time, 768]")

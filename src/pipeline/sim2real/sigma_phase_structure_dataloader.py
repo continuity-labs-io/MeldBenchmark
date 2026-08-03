@@ -5,6 +5,9 @@ import torch
 import torch.nn as nn
 from torchdiffeq import odeint
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class MorphologicalVectorField(nn.Module):
     def __init__(self, dim=100):
@@ -32,7 +35,7 @@ class SigmaPhaseLoader:
         """
         self.target_components = target_components
         self.source_url = "s3://czb-open-data/qpi-timelapse/sample_01.zarr"
-        print(f"[INIT] Sigma Dataloader targeting proxy: {self.source_url}")
+        logger.info(f"[INIT] Sigma Dataloader targeting proxy: {self.source_url}")
 
     def fetch_and_segment(self):
         """
@@ -40,8 +43,8 @@ class SigmaPhaseLoader:
         Connect to an actual public AWS OME-Zarr dataset using `zarr` and `dask`.
         Implement `cellpose` to isolate a single 'Super-Voxel' (Cell) from the 3D grid.
         """
-        print("[NETWORK] Mocking lazy stream from OME-Zarr store...")
-        print("[COMPUTE] Mocking Cellpose3D centroid extraction...")
+        logger.info("[NETWORK] Mocking lazy stream from OME-Zarr store...")
+        logger.info("[COMPUTE] Mocking Cellpose3D centroid extraction...")
 
         # Simulating the final flattened feature extraction for 1 cell over 15 minutes.
         # Real microscopes might take a snapshot every 1 minute.
@@ -59,7 +62,7 @@ class SigmaPhaseLoader:
         Upgrade this from basic PCA to a PyTorch Spatial Variational Autoencoder
         to capture non-linear structural topology.
         """
-        print(
+        logger.info(
             f"[ML] Compressing {raw_spatial_features.shape[1]} raw features to {self.target_components} dimensions..."
         )
 
@@ -83,7 +86,7 @@ class SigmaPhaseLoader:
         The Omega laser fires at 500 Hz (every 2 milliseconds).
         How do we map the slow 1-minute shape data onto the 2ms electrical grid?
         """
-        print("[ALIGNMENT] Interpolating slow morphology to the 500Hz master clock using Piecewise Neural ODE...")
+        logger.info("[ALIGNMENT] Interpolating slow morphology to the 500Hz master clock using Piecewise Neural ODE...")
 
         # Convert master clock to minutes
         master_time_min = master_time_ms / 60000.0
@@ -148,7 +151,7 @@ class SigmaPhaseLoader:
 if __name__ == "__main__":
     # 1. Boot the Master MELD Clock
     # Simulating 15 minutes. A 500Hz burst (2ms) for 4.5 seconds every 5 minutes.
-    print("Initializing MELD Master Clock...")
+    logger.info("Initializing MELD Master Clock...")
     master_clock_ms = []
     for minute in [0, 5, 10, 15]:
         # 4.5 seconds of 500Hz = 2250 frames per burst
@@ -162,5 +165,5 @@ if __name__ == "__main__":
     latents = loader.compress_to_latent(raw_feats)
     final_df = loader.align_to_master_clock(times, latents, master_clock_ms)
 
-    print("\n[SUCCESS] Sim2Real Sigma Tensor Generated.")
-    print(final_df.head())
+    logger.info("\n[SUCCESS] Sim2Real Sigma Tensor Generated.")
+    logger.info(final_df.head())
