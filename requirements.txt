@@ -24,3 +24,5 @@ pydantic-settings
 pytest
 pyright
 torchdiffeq
+h5py
+spikeinterface
