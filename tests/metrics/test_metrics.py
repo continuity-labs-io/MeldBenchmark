@@ -20,6 +20,7 @@ def test_calculate_csd(metrics_engine):
     assert len(csd_scores) == 20
     assert all(isinstance(score, float) for score in csd_scores)
 
+@pytest.mark.filterwarnings("ignore:Casting complex values to real discards the imaginary part")
 def test_calculate_ksm(metrics_engine):
     z_seq = create_dummy_signal(20, 16)
     ksm_scores = metrics_engine.calculate_ksm(z_seq, window_size=5)
