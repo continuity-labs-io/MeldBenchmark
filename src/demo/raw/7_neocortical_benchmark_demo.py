@@ -85,7 +85,10 @@ def main():
     fig.colorbar(im1, ax=ax1)
     
     # Panel 2: MambaLRP Feature Attribution Heatmap
-    im2 = ax2.imshow(attribution_map[0].detach().cpu().numpy().T, aspect='auto', cmap='magma', origin='lower')
+    attr_data = attribution_map[0].detach().cpu().numpy().T
+    # Clamp the color scale to the 95th percentile so early-warning signals (like at T=125) pop
+    vmax_val = np.percentile(attr_data, 95)
+    im2 = ax2.imshow(attr_data, aspect='auto', cmap='inferno', origin='lower', vmax=vmax_val)
     ax2.axvline(x=EVENT_FRAME, color='yellow', linestyle='--', linewidth=2, label='EVENT_FRAME (Crash)')
     ax2.set_title("MambaLRP Feature Attribution", color='white', fontweight='bold')
     ax2.set_ylabel("Features (114-D)", color='white')
