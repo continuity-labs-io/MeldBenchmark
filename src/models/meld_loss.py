@@ -11,7 +11,13 @@ class MeldLoss(nn.Module):
     Incorporates Next-Frame Forecasting, Lipschitz continuous penalty, and Time-Reversal Error.
     """
 
-    def __init__(self, alpha=settings.MELD_ALPHA, beta=settings.MELD_BETA, gamma=settings.MELD_GAMMA, L=settings.LIPSCHITZ_CONSTANT):
+    def __init__(
+        self,
+        alpha=settings.MELD_ALPHA,
+        beta=settings.MELD_BETA,
+        gamma=settings.MELD_GAMMA,
+        L=settings.LIPSCHITZ_CONSTANT,
+    ):
         super().__init__()
         self.alpha = alpha
         self.beta = beta
@@ -47,12 +53,18 @@ class MeldLoss(nn.Module):
         norm_delta_y = torch.norm(delta_y_flat, p=2, dim=1, keepdim=True)  # shape (batch_size, 1)
 
         # Penalize this norm if it exceeds L * delta_x: max(0, ||Δy|| - L * Δx)
+        # This enforces a finite physical velocity bound on the dynamics.
         lipschitz_violations = F.relu(norm_delta_y - self.L * delta_x)
 
         # Mean across the batch
         l_lipschitz = lipschitz_violations.mean()
 
         # 3. Time-Reversal Error (L_reverse)
+        # Reversible processes produce no net entropy.
+        # When a cell undergoes an irreversible phase transition, information is permanently erased,
+        # dissipating heat according to Landauer's limit.
+        # reverse-prediction head attempts to invert the trajectory back to time t.
+        # The magnitude of l_reverse quantifies the thermodynamic irreversibility of the transition.
         l_reverse = F.mse_loss(reconstructed_t, state_t)
 
         # Total Loss
@@ -70,9 +82,10 @@ class MeldLoss(nn.Module):
 
 class TopoContrastiveLoss(nn.Module):
     """
-    Contrastive loss to align topological shape of continuous LFP standing waves 
+    Contrastive loss to align topological shape of continuous LFP standing waves
     with visual stimuli (stimulus embeddings), similar to CLIP.
     """
+
     def __init__(self):
         super().__init__()
         self.logit_scale = nn.Parameter(torch.ones([]) * np.log(1 / 0.07))

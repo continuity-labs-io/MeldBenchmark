@@ -14,7 +14,7 @@ class HardwareSubstrate(abc.ABC):
     @property
     @abc.abstractmethod
     def device(self) -> torch.device:
-        pass
+        raise NotImplementedError
 
     @property
     def is_mps(self) -> bool:
@@ -30,15 +30,15 @@ class HardwareSubstrate(abc.ABC):
 
     @abc.abstractmethod
     def synchronize(self) -> None:
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def empty_cache(self) -> None:
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def current_memory_mb(self) -> float:
-        pass
+        raise NotImplementedError
 
 
 class MPSSubstrate(HardwareSubstrate):
@@ -86,9 +86,11 @@ class CPUSubstrate(HardwareSubstrate):
         return self._device
 
     def synchronize(self) -> None:
+        """Intentional no-op: CPU execution is synchronous."""
         pass
 
     def empty_cache(self) -> None:
+        """Intentional no-op: CPU allocator lacks a manual cache-clearing mechanism."""
         pass
 
     def current_memory_mb(self) -> float:
