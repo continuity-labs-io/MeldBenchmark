@@ -20,9 +20,8 @@ def main():
     device = get_optimal_device(allow_mps=False)
     print(f"[*] Booting Neocortical Benchmark Demo on: {device.type.upper()}")
     
-    print("[*] Initializing Dataloader and Models...")
-    # time_steps=200, latent_dim=114
-    dataset = NeocorticalAssembloidDataset(time_steps=200, num_channels=256, latent_dim=114)
+    print("[*] Initializing Neocortical Assembloid Mock DataLoader...")
+    dataset = NeocorticalAssembloidDataset(time_steps=200, latent_dim=114)
     dataset_iter = iter(dataset)
     
     engine = NeocorticalEngine(input_dim=114, d_model=768, d_state=64).to(device)

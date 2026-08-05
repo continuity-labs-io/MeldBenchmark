@@ -5,12 +5,14 @@ import math
 class NeocorticalAssembloidDataset(IterableDataset):
     """
     Simulates a multi-region thalamocortical loop assembloid generating 
-    multi-modal time-series data (HD-MEA voltage traces + spatial optical markers + sparse RNA snapshots).
+    multi-modal time-series data including:
+    - HD-MEA voltage traces
+    - spatial optical markers
+    - sparse RNA snapshots
     """
-    def __init__(self, time_steps: int = 1000, num_channels: int = 256, latent_dim: int = 114):
+    def __init__(self, time_steps: int = 1000, latent_dim: int = 114):
         super().__init__()
         self.time_steps = time_steps
-        self.num_channels = num_channels
         self.latent_dim = latent_dim
 
     def __iter__(self):

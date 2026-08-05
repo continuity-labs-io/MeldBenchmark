@@ -1,3 +1,19 @@
+"""
+BDC-RFC-004: Dynamic Sensor Masking Demo
+
+This script demonstrates the training of a Continuous-Time State Space Engine 
+(using a Mamba-2 backbone) to handle real-time catastrophic sensor failures.
+
+KEY STUDY FINDING:
+Dynamic sensor imputation relies entirely on the model learning deep spatial 
+covariance. Our study showed that training on simple "salt-and-pepper" noise 
+is insufficient; the network cannot zero-shot a catastrophic hardware failure.
+To successfully impute a completely severed sensor, the training curriculum 
+MUST utilize "block masking" (dropping entire sensor channels for the duration 
+of the sequence). This forces the network to rely on spatial correlation rather 
+than temporal memorization.
+"""
+
 import os
 import torch
 import torch.nn as nn
@@ -7,6 +23,7 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 try:
     from mamba_ssm import Mamba2
@@ -25,7 +42,7 @@ class DynamicMaskingEngine(nn.Module):
         super().__init__()
         self.input_dim = input_dim
         
-        # THE MOAT: The input dimension is doubled (114 data + 114 mask)
+        # The input dimension is doubled (114 data + 114 mask)
         # This explicit bottleneck forces the surviving sensors to compensate.
         self.mask_encoder = nn.Sequential(
             nn.Linear(input_dim * 2, d_model),
@@ -78,10 +95,13 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
     
     device = get_optimal_device(allow_mps=False)
-    print(f"\n[*] Booting BDC-RFC-004 Sensor Masking Demo on: {device.type.upper()}")
+    print(f"\n[*] Device: {device.type.upper()}")
     
     INPUT_DIM = 114
-    dataset = NeocorticalAssembloidDataset(time_steps=200, num_channels=256, latent_dim=INPUT_DIM)
+    SEQUENCE_LENGTH = 200
+    TRAIN_EPOCHS = 1000
+
+    dataset = NeocorticalAssembloidDataset(time_steps=SEQUENCE_LENGTH, latent_dim=INPUT_DIM)
     dataset_iter = iter(dataset)
     
     engine = DynamicMaskingEngine(input_dim=INPUT_DIM, d_model=256).to(device)
@@ -91,13 +111,28 @@ def main():
     print("[*] Training network to learn multi-modal covariance (Burn-In)...")
     engine.train()
     
-    for i in range(25):
+    # Early Stopping State
+    best_loss = float('inf')
+    patience_counter = 0
+    PATIENCE_LIMIT = 50
+    
+    pbar = tqdm(range(TRAIN_EPOCHS), desc="Burn-In Training", unit="iter")
+    for iteration in pbar:
         seq, _ = next(dataset_iter)
-        seq = seq.unsqueeze(0).to(device) # Clean ground truth [1, 200, 114]
+        seq = seq.unsqueeze(0).to(device) # Clean ground truth [1, SEQUENCE_LENGTH, INPUT_DIM]
         
-        # Simulate training dropouts (randomly drop 10% of sensors to teach the encoder)
-        dropout_mask = (torch.rand_like(seq) > 0.1)
-        seq_corrupt = torch.where(dropout_mask, seq, torch.tensor(float('nan'), device=device))
+        # CURRICULUM UPGRADE: Dynamic Mid-Sequence Sensor Failure
+        # We simulate sensors suddenly dying partway through the recording (matching the disaster scenario)
+        seq_corrupt = seq.clone()
+        
+        # Pick a random time for the failure to occur (e.g. between step 10 and 190)
+        fail_t = torch.randint(10, SEQUENCE_LENGTH - 10, (1,)).item()
+        
+        # Pick a random 15% of sensors to suffer catastrophic failure
+        failed_sensors = torch.rand(INPUT_DIM, device=device) < 0.15
+        
+        # Inject the NaNs from the failure point to the end of the sequence
+        seq_corrupt[0, fail_t:, failed_sensors] = float('nan')
         
         optimizer.zero_grad()
         
@@ -107,10 +142,36 @@ def main():
         
         loss = F.mse_loss(pred_t_plus_1, target_t_plus_1)
         loss.backward()
+        
+        # Calculate the total gradient norm before the optimizer steps
+        # We set max_norm to infinity so it just measures the norm without clipping it
+        grad_norm = torch.nn.utils.clip_grad_norm_(engine.parameters(), max_norm=float('inf'))
+        
         optimizer.step()
         
-        if (i+1) % 5 == 0:
-            print(f"    Iteration {i+1}/25 | Total Loss: {loss.item():.4f}")
+        current_loss = loss.item()
+        current_grad_norm = grad_norm.item()
+        
+        # Update progress bar metrics
+        pbar.set_postfix({'Loss': f'{current_loss:.4f}', 'Grad Norm': f'{current_grad_norm:.4f}'})
+            
+        # 1. Early Stopping on Gradient Collapse
+        if current_grad_norm < 1e-4:
+            pbar.write(f"[*] Early Stopping Triggered: Gradients vanished at iteration {iteration+1}")
+            break
+            
+        # 2. Early Stopping on Loss Plateau
+        if current_loss < (best_loss - 0.0005):
+            best_loss = current_loss
+            patience_counter = 0  # Reset patience if we improved
+        else:
+            patience_counter += 1
+            
+        if patience_counter >= PATIENCE_LIMIT:
+            pbar.write(f"[*] Early Stopping Triggered: Loss plateaued for {PATIENCE_LIMIT} iterations (Stopped at {iteration+1})")
+            break
+            
+    pbar.close()
 
     # --- 2. THE WET-LAB DISASTER SIMULATION ---
     print("\n[*] Simulating catastrophic sensor failure (Voltage Array disconnected)...")
@@ -121,21 +182,28 @@ def main():
     
     test_seq = true_seq.clone()
     
-    # At T=100, the last two features (Omega_VoltRed, Omega_VoltGrn) completely drop out to NaN
-    DROP_FRAME = 100
-    test_seq[:, DROP_FRAME:, 112:] = float('nan') 
+    # Inject NaNs into the last two features halfway through the sequence (Omega_VoltRed, Omega_VoltGrn)
+    DROP_FRAME = SEQUENCE_LENGTH // 2
+    # The last two features are Omega_VoltRed (112) and Omega_VoltGrn (113)
+    FAILED_INDEX = 112
+    test_seq[:, DROP_FRAME:, FAILED_INDEX:] = float('nan') 
     
     with torch.no_grad():
-        # Masker intercepts the NaNs and infers the voltage based on the optical shape (Features 0-111)
-        pred_seq, valid_mask = engine(test_seq[:, :-1, :])
+        # Mask encoder intercepts the NaNs and infers the voltage based on the optical shape (Features 0-111)
+        pred_seq, _ = engine(test_seq[:, :-1, :])
         
-        # Calculate the error between the Masker's guess and the ground truth we hid
-        imputed_voltage = pred_seq[0, DROP_FRAME-1:, 112:].cpu().numpy()
-        true_voltage = true_seq[0, DROP_FRAME:, 112:].cpu().numpy()
+        # Calculate the error between the mask encoder's guess and the ground truth we hid
+        imputed_voltage = pred_seq[0, DROP_FRAME-1:, FAILED_INDEX:].cpu().numpy()
+        true_voltage = true_seq[0, DROP_FRAME:, FAILED_INDEX:].cpu().numpy()
+        
+        # Compute and log the precise delta (MSE and MAE)
+        mse = np.mean((imputed_voltage - true_voltage) ** 2)
+        mae = np.mean(np.abs(imputed_voltage - true_voltage))
+        print(f"[*] Imputation Performance - MSE: {mse:.4f} | MAE: {mae:.4f}")
         
     print("[*] Generating Dashboard...")
     plt.style.use('dark_background')
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8), sharex=True)
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12), sharex=True)
     
     # Panel 1: What the Mamba Engine Received
     im1 = ax1.imshow(test_seq[0].T.cpu().numpy(), aspect='auto', cmap='viridis', origin='lower')
@@ -146,15 +214,32 @@ def main():
     fig.colorbar(im1, ax=ax1)
     
     # Panel 2: The Imputation Accuracy
-    t_drop = np.arange(DROP_FRAME, 200)
-    ax2.plot(t_drop, true_voltage[:, 0], color='cyan', label='Ground Truth Voltage', linewidth=2)
+    t_full = np.arange(SEQUENCE_LENGTH)
+    t_drop = np.arange(DROP_FRAME, SEQUENCE_LENGTH)
+    
+    full_true_voltage = true_seq[0, :, FAILED_INDEX].cpu().numpy()
+    
+    ax2.plot(t_full, full_true_voltage, color='cyan', label='Ground Truth Voltage', linewidth=2)
     ax2.plot(t_drop, imputed_voltage[:, 0], color='orange', linestyle='--', label='Masker Imputation', linewidth=2)
     ax2.axvline(x=DROP_FRAME, color='red', linestyle='--', linewidth=2)
     ax2.set_title("Continuous-Time Spatial Imputation (Omega Voltage Track)", color='white', fontweight='bold')
     ax2.set_ylabel("Amplitude")
-    ax2.set_xlabel("Time Step")
     ax2.legend(loc="upper right")
     ax2.grid(True, alpha=0.2)
+    
+    # Panel 3: Error Time Series
+    abs_error = np.abs(imputed_voltage[:, 0] - true_voltage[:, 0])
+    ax3.plot(t_drop, abs_error, color='magenta', linewidth=2, label='Absolute Error')
+    ax3.axvline(x=DROP_FRAME, color='red', linestyle='--', linewidth=2)
+    
+    # Theoretical noise floor for Absolute Error
+    # Given noise ~ N(0, 0.1), Mean Absolute Error should optimally be ~0.08
+    ax3.axhline(y=0.08, color='lime', linestyle=':', linewidth=2, label='Optimal (Noise Floor)')
+    ax3.set_title("Imputation Error (Absolute Difference)", color='white', fontweight='bold')
+    ax3.set_ylabel("Error")
+    ax3.set_xlabel("Time Step")
+    ax3.legend(loc="upper right")
+    ax3.grid(True, alpha=0.2)
     
     plt.tight_layout()
     output_path = os.path.join(output_dir, "9_sensor_dropout_demo.png")
