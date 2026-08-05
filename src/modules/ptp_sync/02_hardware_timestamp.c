@@ -29,21 +29,30 @@
 #define BUF_SIZE 2048
 
 /*
- * Detailed explanation of PHC vs System Clock:
+ * --------------------------------------------------------------------------------
+ * HARDWARE TIMESTAMPING DEMO
+ * --------------------------------------------------------------------------------
  * 
- * The System Clock (CLOCK_REALTIME) is maintained by the OS kernel. It is subject to 
- * NTP adjustments, leap seconds, and OS scheduler jitter. Standard software timestamps 
- * (like time.time() in Python or gettimeofday in C) read this clock.
+ * Context: In high-performance biological pipelines, sensors (like high-speed cameras or 
+ * multi-electrode arrays) stream a massive firehose of raw data directly into the 
+ * server over standard Ethernet (10/100 GbE) cables. If we let the Operating System (Linux/macOS) 
+ * assign timestamps to this data when it finally trickles into our software, the OS's unpredictable 
+ * CPU scheduling introduces "jitter" (as seen in the Python jitter simulator). This destroys the 
+ * precise timing needed to align multiple high-frequency sensors together.
  * 
- * The PTP Hardware Clock (PHC) resides directly on the Network Interface Card (NIC). 
- * It runs independently of the host CPU and OS. When an Ethernet frame arrives at the 
- * physical layer (PHY) or MAC, the hardware immediately captures the exact moment using 
- * the PHC. This timestamp is stored in a register and later passed up the stack via 
- * socket ancillary data (control messages). 
+ * The Fix: This C code demonstrates how to bypass the OS completely. Modern Network Interface 
+ * Cards (NICs) have their own ultra-precise internal clock, called the PTP Hardware 
+ * Clock (PHC). 
  * 
- * By using the PHC, we bypass the OS entirely for timing. We eliminate all software-induced 
- * jitter and variable latency, guaranteeing deterministic timing critical for causality 
- * in high-frequency, continuous biological data streams.
+ * Instead of asking the OS "what time is it right now?", this script asks the NIC 
+ * "what time did this packet physically touch your Ethernet port?". By pulling this 
+ * raw hardware timestamp out of the packet's hidden metadata (ancillary data), we 
+ * achieve microsecond-perfect deterministic timing, regardless of how busy the CPU is!
+ * 
+ * NOTE:
+ * - System Clock (CLOCK_REALTIME): Delayed by OS jitter, leap seconds, CPU load.
+ * - PHC (PTP Hardware Clock): Stamped instantly in silicon on the NIC.
+ * --------------------------------------------------------------------------------
  */
 
 int main() {
