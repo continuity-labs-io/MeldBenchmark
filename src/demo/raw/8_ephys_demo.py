@@ -12,6 +12,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import psutil
 import logging
+import argparse
 
 matplotlib.use("Agg")
 
@@ -117,6 +118,10 @@ def plot_ephys_dashboard(raw_ephys, vram_history, ksm_scores, relevance, event_f
     plt.close()
 
 def main():
+    parser = argparse.ArgumentParser(description="Master Ephys Execution Dashboard")
+    parser.add_argument("--seq_ms", type=int, default=500, help="Sequence length in milliseconds (e.g. 500)")
+    args = parser.parse_args()
+
     device = get_optimal_device(allow_mps=False, verbose=True)
     
     print("\n" + "="*80)
@@ -127,7 +132,7 @@ def main():
     # DEMO KNOBS
     # =========================================================================
     BURN_IN_ITERATIONS = 10
-    SEQUENCE_LENGTH_MS = 500
+    SEQUENCE_LENGTH_MS = args.seq_ms
     CRASH_INJECTION_MS = 250
     SAMPLING_RATE_HZ = 20000
     
@@ -136,7 +141,7 @@ def main():
     TARGET_CHANNELS = 1024
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.abspath(os.path.join(current_dir, "../.."))
+    repo_root = os.path.abspath(os.path.join(current_dir, "../../.."))
     file_path = os.path.join(repo_root, "dataset", "ephys", "example.brw")
     
     print("[*] 1. Initializing ContinuousHDMEADataset...")

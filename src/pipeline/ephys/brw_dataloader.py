@@ -15,6 +15,13 @@ class ContinuousHDMEADataset(Dataset):
     This bypasses spikeinterface metadata constraints and streams the 20kHz 
     telemetry directly from the /3BData/Raw binary block, applying Z-score 
     normalization to stabilize continuous-time state-space models.
+    
+    Data Source:
+    To reproduce this pipeline, download the HD-MEA NEUROPulse Dataset from Zenodo:
+    URL: https://zenodo.org/records/13908319
+    This dataset contains raw 3Brain .brw data files (BrainWave format) recorded 
+    from 4,096-channel HD-MEAs (using BioCAM/Accura hardware). It includes both 
+    spontaneous baseline activity and evoked responses.
     """
     def __init__(self, brw_file_path: str, sequence_length: int = 10000, target_channels: int = 1024):
         """
