@@ -7,7 +7,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-from src.pipeline.ephys.brw_dataloader import ContinuousHDMEADataset
+from src.pipeline.ephys.maxwell_dataloader import MaxWellHDMEADataset
 from src.models.spike_forecaster import SpikeForecaster
 from src.metrics.metrics import ThermodynamicMetrics
 from src.metrics.hardware_monitor import HardwareMonitor
@@ -43,7 +43,7 @@ def plot_bio_blade_dashboard(raw_telemetry, ksm_scores, event_frame, seq_lengths
     vmax_val = np.percentile(np.abs(raw_sub[:, :event_frame_dec]), 95)
     
     im1 = ax1.imshow(raw_sub, aspect='auto', cmap='RdBu_r', origin='lower', vmin=-vmax_val, vmax=vmax_val)
-    ax1.axvline(x=event_frame_dec, color='yellow', linestyle='--', linewidth=2, label='Necrosis (Flatline)')
+    ax1.axvline(x=event_frame_dec, color='yellow', linestyle='--', linewidth=2, label='50µM Diazepam Phase Transition')
     ax1.set_title("Analog Biological Layer (HD-MEA 20kHz Telemetry)", color='white', fontweight='bold')
     ax1.set_ylabel("Channels (0-63)", color='white')
     ax1.set_xlabel("Time (Decimated)", color='white')
@@ -52,7 +52,7 @@ def plot_bio_blade_dashboard(raw_telemetry, ksm_scores, event_frame, seq_lengths
 
     # Panel 2: Digital Compute Layer
     ax2.plot(ksm_scores, color='cyan', linewidth=2, label='PyDMD KSM Score')
-    ax2.axvline(x=event_frame, color='yellow', linestyle='--', linewidth=2, label='Necrosis (Flatline)')
+    ax2.axvline(x=event_frame, color='yellow', linestyle='--', linewidth=2, label='50µM Diazepam Phase Transition')
     ax2.axhline(y=0.9, color='red', linestyle='--', linewidth=1, label='Stability Collapse Threshold')
     ax2.set_title("Digital Compute Layer: PyDMD Koopman Stability Metric (KSM)", color='white', fontweight='bold')
     ax2.set_ylabel("KSM Score", color='white')
@@ -83,39 +83,40 @@ def main():
     if args.mac:
         BATCH_SIZE = 2
         SEQUENCE_LENGTH_MS = 250
-        CRASH_INJECTION_MS = 125
         TARGET_CHANNELS = 512
         logger.info("[*] MAC MODE ENABLED: Scaling down parameters to prevent CPU OOM.")
     else:
         BATCH_SIZE = 8
         SEQUENCE_LENGTH_MS = 500
-        CRASH_INJECTION_MS = 250
         TARGET_CHANNELS = 1024
 
     SAMPLING_RATE_HZ = 20000
 
     SEQ_LEN = int((SEQUENCE_LENGTH_MS / 1000.0) * SAMPLING_RATE_HZ)
-    EVENT_FRAME = int((CRASH_INJECTION_MS / 1000.0) * SAMPLING_RATE_HZ)
+    EVENT_FRAME = SEQ_LEN
 
     device = get_optimal_device(allow_mps=False, verbose=True)
     logger.info("[*] Initializing Data Ingestion...")
     
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-    dataset_path = os.path.join(project_root, "dataset", "ephys", "example.brw")
+    FILE_CONTROL = os.path.join(project_root, "dataset", "ephys", "Drug_2953_control.raw.h5")
+    FILE_CRASH = os.path.join(project_root, "dataset", "ephys", "Drug_2953_50uM.raw.h5")
     
     try:
-        dataset = ContinuousHDMEADataset(dataset_path, sequence_length=SEQ_LEN)
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=BATCH_SIZE)
-        batch = next(iter(dataloader)).to(device)
+        dataset_control = MaxWellHDMEADataset(FILE_CONTROL, sequence_length=SEQ_LEN, target_channels=TARGET_CHANNELS)
+        dataset_crash = MaxWellHDMEADataset(FILE_CRASH, sequence_length=SEQ_LEN, target_channels=TARGET_CHANNELS)
         
-        # Slice the channels down if the user requested a fast mac execution
-        if batch.shape[-1] != TARGET_CHANNELS:
-            batch = batch[:, :, :TARGET_CHANNELS]
-            
-        logger.info("[*] Successfully loaded BRW dataset.")
+        control_chunk = dataset_control[0]
+        crash_chunk = dataset_crash[0]
+        
+        val_seq = torch.cat([control_chunk, crash_chunk], dim=0).unsqueeze(0).to(device)
+        logger.info("[*] Successfully loaded MaxWell HD-MEA datasets.")
     except Exception as e:
-        logger.warning(f"[!] Could not load BRW dataset ({e}). Falling back to synthetic HD-MEA tensor.")
-        batch = (torch.randn(BATCH_SIZE, SEQ_LEN, TARGET_CHANNELS).abs() * 0.5).to(device)
+        logger.warning(f"[!] Could not load MaxWell datasets ({e}). Falling back to synthetic HD-MEA tensor.")
+        val_seq = (torch.randn(1, SEQ_LEN * 2, TARGET_CHANNELS).abs() * 0.5).to(device)
+        val_seq[:, EVENT_FRAME:, :] = 0.0
+
+    batch = val_seq[:, :SEQ_LEN, :].expand(BATCH_SIZE, -1, -1).contiguous()
 
     logger.info("[*] Initializing SpikeForecaster...")
     model = SpikeForecaster(input_dim=TARGET_CHANNELS, d_model=256, d_state=64).to(device)
@@ -149,10 +150,8 @@ def main():
     print("=" * 60)
     print("CONCLUSION: Edge-compute prevents AWS ingress throttling.\n")
 
-    logger.info("[*] Simulating Waddington Crash (Necrosis Flatline)...")
-    val_seq = batch.clone()
-    val_seq[:, EVENT_FRAME:, :] = 0.0
-
+    logger.info("[*] Running inference on continuous sequence (Control -> Crash)...")
+    
     with torch.no_grad():
         hidden_states = model.get_hidden_states(val_seq)
     
@@ -185,7 +184,7 @@ def main():
         os.close(devnull_fd)
         
     warnings.resetwarnings()
-    ksm_scores = np.interp(np.arange(SEQ_LEN), np.arange(len(ksm_scores_decimated)) * decimation_factor, ksm_scores_decimated)
+    ksm_scores = np.interp(np.arange(SEQ_LEN * 2), np.arange(len(ksm_scores_decimated)) * decimation_factor, ksm_scores_decimated)
 
     logger.info("[*] Running VRAM Hardware Monitor scaling benchmark...")
     hw_monitor = HardwareMonitor(device)
