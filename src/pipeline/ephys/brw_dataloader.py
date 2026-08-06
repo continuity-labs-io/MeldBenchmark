@@ -89,7 +89,7 @@ if __name__ == "__main__":
     # Define default directory relative to the repository root
     current_dir = os.path.dirname(os.path.abspath(__file__))
     repo_root = os.path.abspath(os.path.join(current_dir, "..", ".."))
-    default_dir = os.path.join(repo_root, "dataset", "ephys")
+    default_dir = os.path.join(repo_root, "data", "ephys")
     
     # Path to the dummy example file
     dummy_file_path = os.path.join(default_dir, "example.brw")

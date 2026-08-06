@@ -165,7 +165,7 @@ cython_debug/
 #.idea/
 
 # Custom
-dataset/
+data/
 .ruff_cache/
 .uv_cache/
 

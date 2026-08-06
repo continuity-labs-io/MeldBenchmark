@@ -116,5 +116,5 @@ def generate_meld_sim2real_stub(total_minutes=15, crash_minute=10):
 meld_tensor = generate_meld_sim2real_stub()
 
 # Save a snapshot so the ML team can visualize the NaN gaps
-meld_tensor.head(2255).to_csv("dataset/MELD_Xi114_Sim2Real_Stub.csv", index=False)
-logger.info("Saved to dataset/MELD_Xi114_Sim2Real_Stub.csv")
+meld_tensor.head(2255).to_csv("data/MELD_Xi114_Sim2Real_Stub.csv", index=False)
+logger.info("Saved to data/MELD_Xi114_Sim2Real_Stub.csv")

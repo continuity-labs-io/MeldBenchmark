@@ -99,8 +99,8 @@ def main():
     logger.info("[*] Initializing Data Ingestion...")
     
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-    FILE_CONTROL = os.path.join(project_root, "dataset", "ephys", "Drug_2953_control.raw.h5")
-    FILE_CRASH = os.path.join(project_root, "dataset", "ephys", "Drug_2953_50uM.raw.h5")
+    FILE_CONTROL = os.path.join(project_root, "data", "ephys", "Drug_2953_control.raw.h5")
+    FILE_CRASH = os.path.join(project_root, "data", "ephys", "Drug_2953_50uM.raw.h5")
     
     try:
         dataset_control = MaxWellHDMEADataset(FILE_CONTROL, sequence_length=SEQ_LEN, target_channels=TARGET_CHANNELS)

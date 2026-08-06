@@ -27,7 +27,7 @@ Requirements:
 
 3. **Data Ingestion (The Reality Check):**
    - Initialize device using `get_optimal_device(allow_mps=False, verbose=True)`.
-   - Instantiate the `ContinuousHDMEADataset` targeting `dataset/ephys/example.brw`. If the file is missing or throws an exception, gracefully fallback to a synthetic tensor of `torch.randn(BATCH_SIZE, SEQ_LEN, TARGET_CHANNELS).abs() * 0.5`. Extract a single batch.
+   - Instantiate the `ContinuousHDMEADataset` targeting `data/ephys/example.brw`. If the file is missing or throws an exception, gracefully fallback to a synthetic tensor of `torch.randn(BATCH_SIZE, SEQ_LEN, TARGET_CHANNELS).abs() * 0.5`. Extract a single batch.
 
 4. **The Latency & Bandwidth Benchmark (The CLI Output):**
    - Initialize the `SpikeForecaster` (d_model=256, d_state=64) and set to `.eval()`.

@@ -34,7 +34,7 @@ The repository includes experimental integration with the Goodfire AI **Stochast
 **HD-MEA NEUROPulse Dataset**
 For raw 3Brain `.brw` data files (BrainWave format) recorded from 4,096-channel HD-MEAs, you can use the HD-MEA NEUROPulse Dataset on Zenodo. This repository was published by researchers from the University of Pavia and the IRCCS Mondino Foundation. It includes spontaneous baseline activity and evoked responses. 
 URL: [https://zenodo.org/records/13908319](https://zenodo.org/records/13908319)
-You can place a downloaded `.brw` file into the appropriate directory (e.g., `dataset/ephys/example.brw`) for the dataloaders to use.
+You can place a downloaded `.brw` file into the appropriate directory (e.g., `data/ephys/example.brw`) for the dataloaders to use.
 
 ### Installation
 Ensure you have PyTorch and the required dependencies installed (including `mamba_ssm` and `transformers==4.40.1`):

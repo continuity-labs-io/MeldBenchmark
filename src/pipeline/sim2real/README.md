@@ -38,4 +38,4 @@ Run the master Sim2Real builder to generate a synthetic baseline tensor:
 python data_pipeline/meld_sim2real_builder.py
 ```
 
-This will output `dataset/MELD_Xi114_Sim2Real_Stub.csv`. Look at the output. You will immediately see the multi-scale time problem (500Hz data living next to massive NaN gaps). Standard Transformers will OOM-crash on this (see baselines/transformer.ipynb). Welcome to continuous-time biology.
+This will output `data/MELD_Xi114_Sim2Real_Stub.csv`. Look at the output. You will immediately see the multi-scale time problem (500Hz data living next to massive NaN gaps). Standard Transformers will OOM-crash on this (see baselines/transformer.ipynb). Welcome to continuous-time biology.

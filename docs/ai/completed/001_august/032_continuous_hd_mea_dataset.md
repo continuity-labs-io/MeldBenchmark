@@ -11,7 +11,7 @@ Requirements for the `ContinuousHDMEADataset` class:
 4. The `__getitem__` method should fetch the specific temporal chunk of traces using the recording's `get_traces` method. Subsample the spatial dimension by keeping only the first `target_channels`. Return a PyTorch float32 tensor of shape `[Sequence_Length, Channels]`.
 5. Add an `if __name__ == "__main__":` block that instantiates the dataset using a dummy file named `example.brw` and a `DataLoader` with batch size 4. Iterate over the first batch and print out the resulting tensor shape to confirm it yields `[Batch, Sequence_Length, Channels]`. 
 
-Write clean, production-ready Python code with clear docstrings and comments explaining the temporal chunking and spatial subsampling steps. Include a default directory to read the data as ]repo-root]/dataset/ephys.
+Write clean, production-ready Python code with clear docstrings and comments explaining the temporal chunking and spatial subsampling steps. Include a default directory to read the data as ]repo-root]/data/ephys.
 
 # requirements.txt
 torch

@@ -18,8 +18,8 @@ Requirements:
    - Import `MaxWellHDMEADataset` from `src.pipeline.ephys.maxwell_dataloader`.
 2. **File Paths:**
    - Define paths for the new MaxWell data below the config variables in `main()`:
-     `FILE_CONTROL = os.path.join(project_root, "dataset", "ephys", "Drug_2953_control.raw.h5")`
-     `FILE_CRASH = os.path.join(project_root, "dataset", "ephys", "Drug_2953_50uM.raw.h5")`
+     `FILE_CONTROL = os.path.join(project_root, "data", "ephys", "Drug_2953_control.raw.h5")`
+     `FILE_CRASH = os.path.join(project_root, "data", "ephys", "Drug_2953_50uM.raw.h5")`
 3. **Data Ingestion (The Concatenation):**
    - Replace the `ContinuousHDMEADataset` instantiation block.
    - Attempt to instantiate `dataset_control = MaxWellHDMEADataset(FILE_CONTROL, sequence_length=SEQ_LEN, target_channels=TARGET_CHANNELS)` and similarly for `dataset_crash` using `FILE_CRASH`.

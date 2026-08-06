@@ -205,8 +205,8 @@ class AOLLSMDataset(Dataset):
 if __name__ == "__main__":
     import time
 
-    # 1. Test original MeldTemporalDataset if path is present (fallback to dataset/raw_tiffs if needed)
-    raw_tiffs_dir = "./dataset/raw_tiffs"
+    # 1. Test original MeldTemporalDataset if path is present (fallback to data/raw_tiffs if needed)
+    raw_tiffs_dir = "./data/raw_tiffs"
     if os.path.exists(raw_tiffs_dir):
         logger.info(f"\n--- Testing MeldTemporalDataset on {raw_tiffs_dir} ---")
         dataset_original = MeldTemporalDataset(data_dir=raw_tiffs_dir, sequence_length=10)

@@ -142,7 +142,7 @@ def main():
     
     current_dir = os.path.dirname(os.path.abspath(__file__))
     repo_root = os.path.abspath(os.path.join(current_dir, "../../.."))
-    file_path = os.path.join(repo_root, "dataset", "ephys", "example.brw")
+    file_path = os.path.join(repo_root, "data", "ephys", "example.brw")
     
     print("[*] 1. Initializing ContinuousHDMEADataset...")
     try:

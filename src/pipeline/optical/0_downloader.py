@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 TARGET_FOLDER_ID = "1IxA6w2Z76wgiy_NNNY72GdwUK-a8VcKQ"  #  shared folder id  https://drive.google.com/drive/folders/[id]
 TARGET_CHANNEL = "ch1"
 MAX_FRAMES = 10  # Restricted for local 50GB storage limit
-DOWNLOAD_DIR = "./dataset/raw_tiffs"
+DOWNLOAD_DIR = "./data/raw_tiffs"
 
 
 def setup_drive_api():
