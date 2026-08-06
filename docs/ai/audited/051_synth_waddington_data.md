@@ -1,5 +1,7 @@
 # Role Instruction
-You are an expert PyTorch ML Engineer and Computational Biologist. We are building a modular PyTorch benchmarking suite for a novel AI architecture. I need you to create a file at `src/data/waddington_dataset.py`. 
+You are an expert PyTorch ML Engineer and Computational Biologist. 
+We are building a modular PyTorch benchmarking suite for a novel AI architecture. 
+Create a file at `src/data/waddington_dataset.py`. 
 Do not output monolithic scripts; prioritize clean object-oriented design, strictly typed methods, docstrings, and PyTorch best practices.
 
 # Task
@@ -34,4 +36,4 @@ It must generate a batch of synthetic biological sequences representing a cell m
      1. The 1D `y_true` trajectory over time.
      2. A heatmap (using `imshow`) of the 30-D `x_raw` (showing the continuous 20D signal and the heavily zero-padded 10D signal). Transpose the tensor so time is on the x-axis.
      3. The 2-D Mask over time (heatmap or line plot).
-   - Save this plot to `outputs/01_synthetic_data_preview.png`. Ensure the `outputs/` directory is created safely if it doesn't exist.
+   - Save this plot to `outputs/data/01_synthetic_data_preview.png`. Ensure the `outputs/data` directory is created safely if it doesn't exist.
