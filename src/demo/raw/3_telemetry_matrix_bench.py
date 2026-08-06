@@ -2,7 +2,7 @@ import time
 import torch
 from torch.utils.data import DataLoader
 from src.pipeline.ephys.spike_ingestion import SpikeProphecyDataset
-from src.models.spike_forecaster import SpikeForecaster
+from src.models.ssm.spike_forecaster import SpikeForecaster
 from src.utils.device import get_optimal_device
 
 def format_bytes(size):

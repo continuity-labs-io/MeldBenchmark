@@ -2,7 +2,7 @@ import pytest
 import torch
 
 try:
-    from src.models.topo_encoder import TopoEncoder
+    from src.models.encoders.topo_encoder import TopoEncoder
     HAS_MAMBA = True
 except Exception:
     HAS_MAMBA = False

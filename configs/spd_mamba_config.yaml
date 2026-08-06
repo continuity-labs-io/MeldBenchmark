@@ -30,7 +30,7 @@ image_freq: 1000
 image_on_first_step: true
 print_freq: 100
 
-pretrained_model_class: src.models.state_space_engine.StateSpaceEngine
+pretrained_model_class: src.models.ssm.state_space_engine.StateSpaceEngine
 pretrained_model_path: /Users/ry/gh/MeldBenchmark/output/spd/meld_mamba.pth
 pretrained_model_name_hf: EleutherAI/gpt-neox-20b
 pretrained_model_output_attr: null

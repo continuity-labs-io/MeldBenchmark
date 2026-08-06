@@ -1,6 +1,6 @@
 import torch
 import time
-from src.models.state_space_engine import StateSpaceEngine
+from src.models.ssm.state_space_engine import StateSpaceEngine
 from src.metrics.metrics import ThermodynamicMetrics
 
 import logging

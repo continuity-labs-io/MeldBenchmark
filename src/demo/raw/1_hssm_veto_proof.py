@@ -5,7 +5,7 @@ import math
 import matplotlib.pyplot as plt
 import os
 
-from src.models.state_space_engine import StateSpaceEngine
+from src.models.ssm.state_space_engine import StateSpaceEngine
 from src.config import settings
 
 class ToyBiologicalEnvironment:

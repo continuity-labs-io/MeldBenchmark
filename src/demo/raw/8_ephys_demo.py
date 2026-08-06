@@ -38,8 +38,8 @@ def setup_diagnostic_logger():
 logger = setup_diagnostic_logger()
 
 from src.pipeline.ephys.brw_dataloader import ContinuousHDMEADataset
-from src.models.spike_forecaster import SpikeForecaster
-from src.models.meld_loss import MeldLoss
+from src.models.ssm.spike_forecaster import SpikeForecaster
+from src.models.losses.meld_loss import MeldLoss
 from src.metrics.metrics import ThermodynamicMetrics
 from src.metrics.mamba_lrp import MambaLRPEpsilon
 from src.metrics.hardware_monitor import HardwareMonitor

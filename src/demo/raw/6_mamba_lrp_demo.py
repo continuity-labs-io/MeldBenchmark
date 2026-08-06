@@ -17,7 +17,7 @@ import matplotlib
 # Prevent blocking in headless environments
 matplotlib.use("Agg")
 
-from src.models.spike_forecaster import SpikeForecaster
+from src.models.ssm.spike_forecaster import SpikeForecaster
 from src.utils.device import get_optimal_device
 
 from src.metrics.mamba_lrp import MambaLRPEpsilon

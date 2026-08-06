@@ -22,8 +22,8 @@ import numpy as np
 
 from src.utils.device import get_optimal_device
 from src.pipeline.ephys.uhd_lfp_dataloader import ContinuousLFPDataset
-from src.models.topo_encoder import TopoEncoder
-from src.models.meld_loss import TopoContrastiveLoss
+from src.models.encoders.topo_encoder import TopoEncoder
+from src.models.losses.meld_loss import TopoContrastiveLoss
 from src.metrics.metrics import ThermodynamicMetrics
 
 def main():

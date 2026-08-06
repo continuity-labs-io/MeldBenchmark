@@ -111,7 +111,7 @@ if __name__ == "__main__":
     # Ensure src is in the path
     sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
     
-    from src.models.neocortical_engine import NeocorticalEngine
+    from src.models.ssm.neocortical_engine import NeocorticalEngine
     
     # Mock initialization
     model = NeocorticalEngine(input_dim=114, d_model=256, d_state=32)

@@ -6,7 +6,7 @@ import sys
 # Mamba requires specific architecture compilation which might fail on some minimal CI environments
 # We will gracefully skip if Mamba instantiation fails
 try:
-    from src.models.state_space_engine import StateSpaceEngine
+    from src.models.ssm.state_space_engine import StateSpaceEngine
     HAS_MAMBA = True
 except Exception:
     HAS_MAMBA = False

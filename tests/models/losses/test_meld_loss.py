@@ -1,6 +1,6 @@
 import pytest
 import torch
-from src.models.meld_loss import MeldLoss, TopoContrastiveLoss
+from src.models.losses.meld_loss import MeldLoss, TopoContrastiveLoss
 
 def test_meld_loss():
     loss_fn = MeldLoss()

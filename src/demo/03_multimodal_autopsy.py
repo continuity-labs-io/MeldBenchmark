@@ -9,7 +9,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import logging
 
-from src.models.spike_forecaster import SpikeForecaster
+from src.models.ssm.spike_forecaster import SpikeForecaster
 from src.metrics.mamba_lrp import MambaLRPEpsilon
 from src.metrics.autopsy_engine import ThermodynamicAutopsyEngine
 from src.utils.device import get_optimal_device

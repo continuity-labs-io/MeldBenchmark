@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 
 # We patch timm before importing SpatialCompressor if possible, 
 # or patch it around the instantiation.
-from src.models.spatial_compressor import SpatialCompressor
+from src.models.encoders.spatial_compressor import SpatialCompressor
 
 def test_spatial_compressor():
     # Create a dummy ViT model that outputs [B*T, 768]

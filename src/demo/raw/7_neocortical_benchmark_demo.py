@@ -7,8 +7,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from src.pipeline.neocortical_assembloid_dataloader import NeocorticalAssembloidDataset
-from src.models.neocortical_engine import NeocorticalEngine
-from src.models.meld_loss import MeldLoss
+from src.models.ssm.neocortical_engine import NeocorticalEngine
+from src.models.losses.meld_loss import MeldLoss
 from src.utils.device import get_optimal_device
 from src.metrics.autopsy_engine import ThermodynamicAutopsyEngine
 

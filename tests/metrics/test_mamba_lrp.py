@@ -1,7 +1,7 @@
 import torch
 import pytest
 from src.metrics.mamba_lrp import MambaLRPEpsilon
-from src.models.spike_forecaster import SpikeForecaster
+from src.models.ssm.spike_forecaster import SpikeForecaster
 from src.utils.device import get_optimal_device
 
 def test_relevance_conservation_axiom():
