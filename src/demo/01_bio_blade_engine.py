@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from src.pipeline.ephys.maxwell_dataloader import MaxWellHDMEADataset
 from src.models.spike_forecaster import SpikeForecaster
 from src.metrics.metrics import ThermodynamicMetrics
-from src.metrics.hardware_monitor import HardwareMonitor
 from src.utils.device import get_optimal_device
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -32,7 +31,7 @@ def format_bandwidth(bits_per_sec: float) -> str:
     mbps = bits_per_sec / 1e6
     return f"{mbps:.2f} Mbps"
 
-def plot_bio_blade_dashboard(raw_telemetry, ksm_scores, event_frame, seq_lengths, mamba_vram, transformer_vram):
+def plot_bio_blade_dashboard(raw_telemetry, ksm_scores, csd_scores, event_frame):
     plt.style.use('dark_background')
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(12, 12))
 
@@ -60,13 +59,14 @@ def plot_bio_blade_dashboard(raw_telemetry, ksm_scores, event_frame, seq_lengths
     ax2.set_ylim(0, 1.1)
     ax2.legend()
 
-    # Panel 3: Hardware Telemetry
-    ax3.plot(seq_lengths, mamba_vram, color='#00ff00', marker='o', linewidth=2, label='Mamba-2 VRAM (Linear)')
-    ax3.plot(seq_lengths, transformer_vram, color='#ff0000', marker='x', linewidth=2, label='Transformer VRAM (Quadratic)')
-    ax3.set_title("Hardware Invariant: Peak VRAM vs. Sequence Length", color='white', fontweight='bold')
-    ax3.set_ylabel("Peak VRAM (MB)", color='white')
-    ax3.set_xlabel("Sequence Length", color='white')
+    # Panel 3: CSD Metric
+    ax3.plot(csd_scores, color='magenta', linestyle='-', label='CSD (Wobble & Slowing Down)')
+    ax3.axvline(x=event_frame, color='yellow', linestyle='--', linewidth=2, label='50µM Diazepam Phase Transition')
+    ax3.set_title("Kinetic Volatility: Critical Slowing Down (CSD)", color='white', fontweight='bold')
+    ax3.set_ylabel("Variance Amplitude", color='white')
+    ax3.set_xlabel("Time (Samples)", color='white')
     ax3.legend()
+    ax3.grid(True, alpha=0.2)
 
     plt.tight_layout()
     output_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../output")), "01_bio_blade_engine.png")
@@ -186,13 +186,13 @@ def main():
     warnings.resetwarnings()
     ksm_scores = np.interp(np.arange(SEQ_LEN * 2), np.arange(len(ksm_scores_decimated)) * decimation_factor, ksm_scores_decimated)
 
-    logger.info("[*] Running VRAM Hardware Monitor scaling benchmark...")
-    hw_monitor = HardwareMonitor(device)
-    seq_lengths, mamba_vram, transformer_vram = hw_monitor.run_scaling_benchmark(d_model=256)
-    
+    logger.info("[*] Computing Critical Slowing Down (CSD)...")
+    csd_scores_decimated = metrics.calculate_csd(z_seq_decimated, window_size=5)
+    csd_scores = np.interp(np.arange(SEQ_LEN * 2), np.arange(len(csd_scores_decimated)) * decimation_factor, csd_scores_decimated)
+
     logger.info("[*] Rendering 3-Panel Bio-Blade Dashboard...")
     raw_telemetry = val_seq[0].detach().cpu().numpy().T
-    plot_bio_blade_dashboard(raw_telemetry, ksm_scores, EVENT_FRAME, seq_lengths, mamba_vram, transformer_vram)
+    plot_bio_blade_dashboard(raw_telemetry, ksm_scores, csd_scores, EVENT_FRAME)
     
     logger.info("[+] Demo 1 Complete.")
 
