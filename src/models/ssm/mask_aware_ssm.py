@@ -41,12 +41,7 @@ class MaskAwareSSM(nn.Module):
         return torch.stack(hidden_states, dim=1)
 
 if __name__ == '__main__':
-    import sys
-    import os
-    
-    # Adjust sys.path dynamically so we can import from src
-    sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
-    
+
     from src.models.encoders.fusion import BiologicalCartridgeFusion
     
     fusion = BiologicalCartridgeFusion(d_cartridge=30, n_modalities=2, d_model=64)
