@@ -5,17 +5,20 @@ from mamba_ssm import Mamba
 from src.config import settings
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class StateSpaceEngine(nn.Module):
     """
-    StateSpaceEngine models the continuous kinetic trajectory of the biological state using 
+    StateSpaceEngine models the continuous kinetic trajectory of the biological state using
     a Mamba SSM.
     It implements a self-supervised Forward Predictive Coding loop.
     """
 
-    def __init__(self, d_model=settings.MAMBA_D_MODEL, expand=2, d_conv=4, d_state=settings.MAMBA_D_STATE):
+    def __init__(
+        self, d_model=settings.MAMBA_D_MODEL, expand=2, d_conv=4, d_state=settings.MAMBA_D_STATE
+    ):
         """
         Args:
             d_model (int): The dimension of the input feature vectors (e.g., 768 for optical).
@@ -24,7 +27,7 @@ class StateSpaceEngine(nn.Module):
             d_state (int): The size of the hidden state / recurrent memory (depth of memory).
         """
         super().__init__()
-        # Instantiate a standard 1D Mamba block from mamba_ssm. 
+        # Instantiate a standard 1D Mamba block from mamba_ssm.
         # The internal architecture:
         # - Expand (Linear Projection)
         # - 1D Conv
@@ -46,7 +49,7 @@ class StateSpaceEngine(nn.Module):
         Returns:
             tuple:
                 - loss (torch.Tensor): Scalar loss for backpropagation (MSE + Mean Cosine Distance)
-                - frame_distances (torch.Tensor): 1D array of frame-by-frame 
+                - frame_distances (torch.Tensor): 1D array of frame-by-frame
                   Cosine Distances [Time-1]
         """
         # Ingest the sequence of spatial embeddings [Batch, Time, 768]
@@ -74,7 +77,7 @@ class StateSpaceEngine(nn.Module):
         mean_cos_dist = cos_dist.mean()
         scalar_loss = mse_loss + mean_cos_dist
 
-        # Frame-by-frame Cosine Distances: Average over the Batch dimension 
+        # Frame-by-frame Cosine Distances: Average over the Batch dimension
         # -> 1D array of length Time-1
         frame_distances = cos_dist.mean(dim=0)
 
@@ -84,6 +87,7 @@ class StateSpaceEngine(nn.Module):
 if __name__ == "__main__":
     logger.info("Testing StateSpaceEngine architecture...")
     from src.utils.device import get_optimal_device
+
     device = get_optimal_device(verbose=True)
     logger.info(f"Using device: {device}")
 

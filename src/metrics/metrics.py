@@ -42,30 +42,32 @@ class ThermodynamicMetrics:
         # Pad initial frames to maintain temporal sequence length
         return [csd_scores[0]] * (window_size - 1) + csd_scores
 
-    def calculate_ksm(self, z_sequence, window_size=settings.KSM_WINDOW_SIZE, debug_crash_frame=None):
+    def calculate_ksm(
+        self, z_sequence, window_size=settings.KSM_WINDOW_SIZE, debug_crash_frame=None
+    ):
         """
-        The code snippet implements Dynamic Mode Decomposition using a truncated Singular Value Decomposition. 
-        By decomposing the sliding window of latent states X, the algorithm approximates the local linear 
-        operator A_tilde that steps the system forward in time to state Y. The eigenvalues of this operator 
-        directly quantify the thermodynamic stability of the biological system. A maximum eigenvalue near 1.0 
-        indicates stable homeostasis, while a diverging eigenvalue maps to the system crossing the 
+        The code snippet implements Dynamic Mode Decomposition using a truncated Singular Value Decomposition.
+        By decomposing the sliding window of latent states X, the algorithm approximates the local linear
+        operator A_tilde that steps the system forward in time to state Y. The eigenvalues of this operator
+        directly quantify the thermodynamic stability of the biological system. A maximum eigenvalue near 1.0
+        indicates stable homeostasis, while a diverging eigenvalue maps to the system crossing the
         absorbing boundary into a structural crash.
 
-        The decision to utilize Dynamic Mode Decomposition over pseudo-arc length continuation stems from 
+        The decision to utilize Dynamic Mode Decomposition over pseudo-arc length continuation stems from
         the specific architectural constraints of the platform.
-        - Compute Latency: Pseudo-arc length continuation is an iterative root-finding algorithm. 
+        - Compute Latency: Pseudo-arc length continuation is an iterative root-finding algorithm.
         It is computationally expensive and risks introducing variable execution times.
-        Truncated Singular Value Decomposition over a small sliding window is deterministic and executes 
-        with high efficiency on edge GPUs, ensuring the metric keeps pace with the biological timescales 
+        Truncated Singular Value Decomposition over a small sliding window is deterministic and executes
+        with high efficiency on edge GPUs, ensuring the metric keeps pace with the biological timescales
         of milliseconds to minutes.
-        - Model Independence: Pseudo-arc length continuation requires an explicit, differentiable 
-        non-linear vector field to compute the Jacobian. Because the tissue trajectory is modeled 
+        - Model Independence: Pseudo-arc length continuation requires an explicit, differentiable
+        non-linear vector field to compute the Jacobian. Because the tissue trajectory is modeled
         inside the continuous latent space of the state-space engine, defining the exact non-linear
-         continuous field is complex. 
+         continuous field is complex.
          Dynamic Mode Decomposition is entirely data-driven, extracting the kinetic modes directly from
           the streaming embeddings without requiring the underlying equations.
-        - Architectural Simplicity: The current approach provides a fast, elegant solution that 
-        satisfies the requirement for a real-time predictive metric. It isolates the critical variance 
+        - Architectural Simplicity: The current approach provides a fast, elegant solution that
+        satisfies the requirement for a real-time predictive metric. It isolates the critical variance
         and successfully detects the Waddington bifurcation point while keeping the codebase lean.
         """
         import math
@@ -79,7 +81,7 @@ class ThermodynamicMetrics:
 
         for t in range(window_size, time_steps):
             Z = z_sequence[t - window_size : t + 1]
-            
+
             # PyDMD expects snapshots as columns: [Embed_Dim, Num_Snapshots]
             Z_np = Z.T.detach().cpu().numpy()
             temporal_std = float(np.std(Z_np, axis=1).mean())
@@ -92,17 +94,21 @@ class ThermodynamicMetrics:
                     # OptDMD is highly robust to sensor noise
                     dmd = OptDMD(svd_rank=0)
                     dmd.fit(Z_np)
-                    
+
                     eigenvalues = dmd.eigs
                     max_eig = float(np.max(np.abs(eigenvalues)))
-                    
+
                     if debug_crash_frame is not None:
                         # Log the sliding window right before the crash and right after
                         if t == debug_crash_frame - 1:
-                            logger.debug(f"PyDMD Audit [BEFORE crash, t={t}]: eigs={eigenvalues}, max_eig={max_eig}")
+                            logger.debug(
+                                f"PyDMD Audit [BEFORE crash, t={t}]: eigs={eigenvalues}, max_eig={max_eig}"
+                            )
                         elif t == debug_crash_frame + 1:
-                            logger.debug(f"PyDMD Audit [AFTER crash, t={t}]: eigs={eigenvalues}, max_eig={max_eig}")
-                            
+                            logger.debug(
+                                f"PyDMD Audit [AFTER crash, t={t}]: eigs={eigenvalues}, max_eig={max_eig}"
+                            )
+
                 except Exception as e:
                     logger.error(f"PyDMD Failed at frame {t}: {e}")
                     # Force drop in thermodynamic stability on mathematical failure
@@ -113,8 +119,10 @@ class ThermodynamicMetrics:
             else:
                 # Bound KSM smoothly [0, 1] using an exponential envelope
                 ksm = math.exp(-0.5 * abs(max_eig - 1.0))
-            
-            logger.debug(f"[PyDMD] Frame {t} | temporal_std={temporal_std:.6f} | max_eig={max_eig:.4f} | KSM={ksm:.4f}")
+
+            logger.debug(
+                f"[PyDMD] Frame {t} | temporal_std={temporal_std:.6f} | max_eig={max_eig:.4f} | KSM={ksm:.4f}"
+            )
             ksm_scores.append(max(0.0, ksm))
         return ksm_scores
 
@@ -154,7 +162,7 @@ class ThermodynamicMetrics:
 
         for t in range(window_size, time_steps):
             Z = z_sequence[t - window_size : t + 1]
-            
+
             # PyDMD expects snapshots as columns: [Embed_Dim, Num_Snapshots]
             Z_np = Z.T.detach().cpu().numpy()
             temporal_std = float(np.std(Z_np, axis=1).mean())
@@ -164,13 +172,14 @@ class ThermodynamicMetrics:
                 lle = 0.0
             else:
                 import warnings
+
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     try:
                         # OptDMD is highly robust to sensor noise
                         dmd = OptDMD(svd_rank=0)
                         dmd.fit(Z_np)
-                        
+
                         eigenvalues = dmd.eigs
                         max_eig = float(np.max(np.abs(eigenvalues)))
                     except Exception:
@@ -179,44 +188,46 @@ class ThermodynamicMetrics:
 
                 # Calculate LLE
                 lle = math.log(max_eig + 1e-7) / dt
-            
-            logger.debug(f"[PyDMD] Frame {t} | temporal_std={temporal_std:.6f} | max_eig={max_eig:.4f} | LLE={lle:.4f}")
+
+            logger.debug(
+                f"[PyDMD] Frame {t} | temporal_std={temporal_std:.6f} | max_eig={max_eig:.4f} | LLE={lle:.4f}"
+            )
             lle_scores.append(lle)
-            
+
         return lle_scores
 
     def calculate_cka(self, z_seq1, z_seq2):
         """
-        Calculates the Linear Centered Kernel Alignment (CKA) to prove that the geometric shape 
-        of the biological manifold is preserved across multi-day recordings, even in the presence 
+        Calculates the Linear Centered Kernel Alignment (CKA) to prove that the geometric shape
+        of the biological manifold is preserved across multi-day recordings, even in the presence
         of representational drift.
         """
         min_steps = min(z_seq1.shape[0], z_seq2.shape[0])
-        
+
         # Trim to minimum length
         X = z_seq1[:min_steps, :]
         Y = z_seq2[:min_steps, :]
-        
+
         n = min_steps
         device = X.device
-        
+
         # Compute the linear Gram matrices
         K = X @ X.T
         L = Y @ Y.T
-        
+
         # Center the Gram matrices
         H = torch.eye(n, device=device) - (torch.ones(n, n, device=device) / n)
         K_c = H @ K @ H
         L_c = H @ L @ H
-        
+
         # Compute the Hilbert-Schmidt Independence Criterion (HSIC)
         def hsic(A, B):
             return torch.trace(A @ B)
-            
+
         hsic_kl = hsic(K_c, L_c)
         hsic_kk = hsic(K_c, K_c)
         hsic_ll = hsic(L_c, L_c)
-        
+
         # Return the normalized CKA score
         cka = hsic_kl / torch.sqrt(hsic_kk * hsic_ll)
         return cka.item()

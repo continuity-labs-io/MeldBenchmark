@@ -3,6 +3,7 @@ import pandas as pd
 import scipy.signal as signal
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -49,7 +50,9 @@ class OmegaBioelectricLoader:
         Organoids move and swell. We simulate this macroscopic wobble, apply it to BOTH
         the Green (ASAP6c) and Red (mScarlet3) channels, and prove that division cancels it out.
         """
-        logger.info("[PHYSICS] Injecting mechanical tissue drift and thermodynamic crash variance...")
+        logger.info(
+            "[PHYSICS] Injecting mechanical tissue drift and thermodynamic crash variance..."
+        )
 
         # 1. The Mechanical Wobble (Cells shifting out of focus)
         # A slow, wandering sine wave that hits BOTH color channels equally

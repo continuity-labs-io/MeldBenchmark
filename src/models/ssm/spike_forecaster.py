@@ -5,7 +5,9 @@ from mamba_ssm import Mamba2
 from src.config import settings
 
 import logging
+
 logger = logging.getLogger(__name__)
+
 
 class SpikeForecaster(nn.Module):
     """
@@ -14,7 +16,14 @@ class SpikeForecaster(nn.Module):
     and predict non-negative spike rates for the subsequent time step.
     """
 
-    def __init__(self, input_dim=1240, d_model=settings.MAMBA_D_MODEL, expand=2, d_conv=4, d_state=settings.MAMBA_D_STATE):
+    def __init__(
+        self,
+        input_dim=1240,
+        d_model=settings.MAMBA_D_MODEL,
+        expand=2,
+        d_conv=4,
+        d_state=settings.MAMBA_D_STATE,
+    ):
         """
         Args:
             input_dim (int): The dimension of the input feature vectors (e.g., 1240 for spike data).
@@ -26,8 +35,8 @@ class SpikeForecaster(nn.Module):
         super().__init__()
         # Project input to hidden dimension
         self.input_proj = nn.Linear(input_dim, d_model)
-        
-        # Instantiate a Mamba-2 block from mamba_ssm. 
+
+        # Instantiate a Mamba-2 block from mamba_ssm.
         self.mamba = Mamba2(d_model=d_model, d_state=d_state, d_conv=d_conv, expand=expand)
 
         # Output projection back to input dimension (predicting next step)
@@ -40,19 +49,19 @@ class SpikeForecaster(nn.Module):
             return_hidden (bool): If True, returns the internal hidden state.
 
         Returns:
-            torch.Tensor: Predicted non-negative spike rates for the next time step, 
+            torch.Tensor: Predicted non-negative spike rates for the next time step,
                           shape [Batch, Time, input_dim].
             (Optional) torch.Tensor: Hidden states of shape [Batch, Time, d_model].
         """
         # Project to d_model
         h = self.input_proj(x)
-        
+
         # Pass through Mamba-2 block to generate contextualized hidden states
         hidden_states = self.mamba(h)
 
         # Map each hidden state to predicted spike rates
         predictions_raw = self.output_proj(hidden_states)
-        
+
         # Apply Softplus to ensure predictions are non-negative
         predictions = F.softplus(predictions_raw)
 
@@ -71,6 +80,7 @@ class SpikeForecaster(nn.Module):
 if __name__ == "__main__":
     logger.info("Testing SpikeForecaster (Mamba-2) architecture...")
     from src.utils.device import get_optimal_device
+
     device = get_optimal_device(verbose=True)
 
     try:
@@ -83,7 +93,7 @@ if __name__ == "__main__":
 
         # Forward pass
         predictions = model(x)
-        
+
         # Extract hidden states
         hidden_states = model.get_hidden_states(x)
 

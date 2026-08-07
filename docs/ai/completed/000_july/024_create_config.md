@@ -1,4 +1,5 @@
-Next, we establish src/config.py. This centralizes the scattered dimensional variables into a single physics manifest.
+Next, we establish src/config.py. This centralizes the scattered dimensional
+variables into a single physics manifest.
 
 ```python
 """
@@ -19,7 +20,7 @@ class MeldSettings(BaseSettings):
     KSM_WINDOW_SIZE: int = Field(default=4, description="Dynamic Mode Decomposition sliding window")
     CSD_WINDOW_SIZE: int = Field(default=3, description="Critical Slowing Down sliding window")
     LLE_WINDOW_SIZE: int = Field(default=4, description="Local Lyapunov Exponent sliding window")
-    
+
     # --- PHYSICS LOSS PARAMETERS ---
     LIPSCHITZ_CONSTANT: float = Field(default=1.5, description="Upper bound for thermodynamic state change")
     MELD_ALPHA: float = Field(default=1.0, description="Forecast MSE Weight")
@@ -39,4 +40,5 @@ class MeldSettings(BaseSettings):
 settings = MeldSettings()
 ```
 
-nb this is an extraction so also remove the hardcoded constants from the model definition files. 
+nb this is an extraction so also remove the hardcoded constants from the model
+definition files.

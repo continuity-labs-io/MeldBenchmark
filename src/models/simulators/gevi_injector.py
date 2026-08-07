@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from src.config import settings
 
+
 class GEVIInjector(nn.Module):
     """
     Simulates a high-frequency bioelectric data stream (GEVI) and temporally pools it

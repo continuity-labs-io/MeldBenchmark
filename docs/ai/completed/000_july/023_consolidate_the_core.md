@@ -1,11 +1,16 @@
-Let's knock out Suggestion 1: Consolidate the Core. We are injecting the hardware-agnostic routing logic into MeldBenchmark so it scales flawlessly on Apple Silicon or Edge GPUs, and we are centralizing the scattered physics constants.
+Let's knock out Suggestion 1: Consolidate the Core. We are injecting the
+hardware-agnostic routing logic into MeldBenchmark so it scales flawlessly on
+Apple Silicon or Edge GPUs, and we are centralizing the scattered physics
+constants.
 
-Here is your pristine, unified src/core/substrate.py to drop into the repository. It abstracts all the if torch.backends.mps.is_available() boilerplate.
+Here is your pristine, unified src/core/substrate.py to drop into the
+repository. It abstracts all the if torch.backends.mps.is_available()
+boilerplate.
 
 ```
 """
 MELD Core Architecture: Hardware Substrate Abstraction
-Provides a unified interface for memory management, synchronization, and 
+Provides a unified interface for memory management, synchronization, and
 hardware-specific mathematical operations across Apple Silicon, NVIDIA CUDA, and CPUs.
 """
 

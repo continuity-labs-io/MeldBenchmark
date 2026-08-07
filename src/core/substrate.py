@@ -1,6 +1,6 @@
 """
 MELD Core Architecture: Hardware Substrate Abstraction
-Provides a unified interface for memory management, synchronization, and 
+Provides a unified interface for memory management, synchronization, and
 hardware-specific mathematical operations across Apple Silicon, NVIDIA CUDA, and CPUs.
 """
 
@@ -9,6 +9,7 @@ import logging
 import torch
 
 logger = logging.getLogger("meld-substrate")
+
 
 class HardwareSubstrate(abc.ABC):
     @property
@@ -116,6 +117,7 @@ class SubstrateFactory:
             cls._instance = CPUSubstrate()
 
         return cls._instance
+
 
 def get_optimal_device(verbose: bool = False, allow_mps: bool = True) -> torch.device:
     device = SubstrateFactory.get_substrate(allow_mps).device

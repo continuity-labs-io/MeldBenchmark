@@ -7,9 +7,11 @@ import sys
 # We will gracefully skip if Mamba instantiation fails
 try:
     from src.models.ssm.state_space_engine import StateSpaceEngine
+
     HAS_MAMBA = True
 except Exception:
     HAS_MAMBA = False
+
 
 @pytest.mark.skipif(not HAS_MAMBA, reason="Mamba not available or failed to load")
 def test_state_space_engine():
@@ -23,9 +25,9 @@ def test_state_space_engine():
     time_steps = 10
     d_model = 64
     x = torch.randn(batch_size, time_steps, d_model)
-    
+
     scalar_loss, frame_distances = model(x)
-    
+
     assert isinstance(scalar_loss, torch.Tensor)
     assert scalar_loss.ndim == 0
     # frame_distances is [Time - 1]

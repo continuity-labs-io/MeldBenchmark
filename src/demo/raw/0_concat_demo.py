@@ -283,6 +283,7 @@ def plot_thermodynamic_scoreboards(
 
 def main():
     from src.utils.device import get_optimal_device
+
     device = get_optimal_device()
     print(f"[*] Booting MELD End-to-End Compiler on: {device.type.upper()}")
 
@@ -293,9 +294,7 @@ def main():
     CROP_SIZE = (128, 128, 128)
 
     # Initialize the dataset
-    dataset = AOLLSMDataset(
-        data_dir=data_dir, num_frames=SEQUENCE_LENGTH, crop_size=CROP_SIZE
-    )
+    dataset = AOLLSMDataset(data_dir=data_dir, num_frames=SEQUENCE_LENGTH, crop_size=CROP_SIZE)
     dataloader = DataLoader(dataset, batch_size=1, shuffle=False)
 
     # Grab the first batch
@@ -307,7 +306,11 @@ def main():
 
     # Extract Frame 0, Channel 0 for visual inspection
     frame_0_3d = raw_batch[0, 0, 0, :, :, :]
-    plot_frame_projection(frame_0_3d, "Phase 1 Check: 2D Max-Projection (Frame 0)", "0_concat_00_2D_max_projection.png")
+    plot_frame_projection(
+        frame_0_3d,
+        "Phase 1 Check: 2D Max-Projection (Frame 0)",
+        "0_concat_00_2D_max_projection.png",
+    )
 
     print("[*] Injecting Structural Anomaly at Frame 7 (Event Boundary)...")
     experimental_batch = raw_batch.clone()
@@ -316,7 +319,9 @@ def main():
     EVENT_BOUNDARY = 7
     ANOMALY_MAGNITUDE = 2.0
     anomaly_noise = (
-        torch.randn_like(experimental_batch[:, EVENT_BOUNDARY, :, :, :, :]) * experimental_batch.max() * ANOMALY_MAGNITUDE
+        torch.randn_like(experimental_batch[:, EVENT_BOUNDARY, :, :, :, :])
+        * experimental_batch.max()
+        * ANOMALY_MAGNITUDE
     )
     experimental_batch[:, EVENT_BOUNDARY, :, :, :, :] += anomaly_noise
 
@@ -326,7 +331,9 @@ def main():
     compressor = SpatialCompressor().to(device)
     mamba_engine_optical = StateSpaceEngine(d_model=OPTICAL_EMBEDDING_DIM).to(device)
     gevi_injector = GEVIInjector().to(device)
-    mamba_engine_fused = StateSpaceEngine(d_model=OPTICAL_EMBEDDING_DIM + GEVI_EMBEDDING_DIM).to(device)
+    mamba_engine_fused = StateSpaceEngine(d_model=OPTICAL_EMBEDDING_DIM + GEVI_EMBEDDING_DIM).to(
+        device
+    )
 
     compressor.eval()
     mamba_engine_optical.eval()
@@ -384,7 +391,7 @@ def main():
     ksm_scores_fused = metrics.calculate_ksm(z_fused_anomalous, window_size=4)
 
     print("[*] Simulating Biological Rescue & Calculating Hysteresis...")
-    z_curr = latent_fused_anomalous[:, EVENT_BOUNDARY:EVENT_BOUNDARY+1, :]
+    z_curr = latent_fused_anomalous[:, EVENT_BOUNDARY : EVENT_BOUNDARY + 1, :]
     rescue_trajectory_fused = [z_curr.squeeze(0)]
 
     with torch.no_grad():

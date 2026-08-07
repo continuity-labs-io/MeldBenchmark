@@ -6,18 +6,15 @@ import torch.nn as nn
 from torchdiffeq import odeint
 
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class MorphologicalVectorField(nn.Module):
     def __init__(self, dim=100):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(dim + 1, 128),
-            nn.Tanh(),
-            nn.Linear(128, dim)
-        )
-        
+        self.net = nn.Sequential(nn.Linear(dim + 1, 128), nn.Tanh(), nn.Linear(128, dim))
+
     def forward(self, t, z):
         # t is a scalar tensor of time, z is the state
         # expand t to append to z
@@ -86,7 +83,9 @@ class SigmaPhaseLoader:
         The Omega laser fires at 500 Hz (every 2 milliseconds).
         How do we map the slow 1-minute shape data onto the 2ms electrical grid?
         """
-        logger.info("[ALIGNMENT] Interpolating slow morphology to the 500Hz master clock using Piecewise Neural ODE...")
+        logger.info(
+            "[ALIGNMENT] Interpolating slow morphology to the 500Hz master clock using Piecewise Neural ODE..."
+        )
 
         # Convert master clock to minutes
         master_time_min = master_time_ms / 60000.0
@@ -97,43 +96,45 @@ class SigmaPhaseLoader:
         # We piecewise evaluate each 1-minute interval, anchored at the true observation.
         vector_field = MorphologicalVectorField(dim=self.target_components)
         vector_field.eval()
-        
+
         latent_vectors_tensor = torch.tensor(latent_vectors, dtype=torch.float32)
-        
+
         with torch.no_grad():
             for i in range(len(time_minutes) - 1):
                 t_start = time_minutes[i]
-                t_end = time_minutes[i+1]
+                t_end = time_minutes[i + 1]
                 z_start = latent_vectors_tensor[i]
-                
+
                 # Group master evaluation times falling into this interval
                 if i == len(time_minutes) - 2:
                     # Extrapolate for the final observation onwards
-                    mask = (master_time_min >= t_start)
+                    mask = master_time_min >= t_start
                 else:
                     mask = (master_time_min >= t_start) & (master_time_min < t_end)
-                    
+
                 indices = np.where(mask)[0]
                 if len(indices) == 0:
                     continue
-                    
+
                 eval_times_np = master_time_min[indices]
                 eval_times_t = torch.tensor(eval_times_np, dtype=torch.float32)
-                
+
                 # odeint requires the first time in t_eval to be the time of the initial state.
-                if not torch.isclose(eval_times_t[0], torch.tensor(t_start, dtype=torch.float32), atol=1e-5):
+                if not torch.isclose(
+                    eval_times_t[0], torch.tensor(t_start, dtype=torch.float32), atol=1e-5
+                ):
                     t_eval = torch.cat([torch.tensor([t_start], dtype=torch.float32), eval_times_t])
                     skip_first = True
                 else:
                     t_eval = eval_times_t
                     skip_first = False
-                
+
                 # Integrate the continuous biological velocity dz(t)/dt = f(z(t), t)
                 pred_z = odeint(vector_field, z_start, t_eval)
-                
+
                 if skip_first:
                     pred_z = pred_z[1:]
-                    
+
                 aligned_sigma[indices] = pred_z.numpy()
 
         # Format output
