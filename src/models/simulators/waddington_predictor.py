@@ -3,6 +3,7 @@ import torch.nn as nn
 from src.models.encoders.fusion import BiologicalCartridgeFusion
 from src.models.ssm.baseline_ssm import BaselineSSM
 from src.models.ssm.mask_aware_ssm import MaskAwareSSM
+from src.models.attention.baseline_transformer import BaselineTransformer
 
 
 class WaddingtonPredictor(nn.Module):
@@ -17,6 +18,8 @@ class WaddingtonPredictor(nn.Module):
             self.ssm = BaselineSSM(d_model)
         elif ssm_type == "mask_aware":
             self.ssm = MaskAwareSSM(d_model)
+        elif ssm_type == "transformer":
+            self.ssm = BaselineTransformer(d_model)
         else:
             raise ValueError(f"Unknown ssm_type: {ssm_type}")
 
@@ -29,5 +32,7 @@ class WaddingtonPredictor(nn.Module):
             h = self.ssm(latent_x)
         elif self.ssm_type == "mask_aware":
             h = self.ssm(latent_x, latent_gate)
+        elif self.ssm_type == "transformer":
+            h = self.ssm(latent_x)
 
         return self.readout(h)

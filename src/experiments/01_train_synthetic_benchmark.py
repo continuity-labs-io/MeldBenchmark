@@ -40,23 +40,28 @@ def main():
     # Model Initialization
     model_baseline = WaddingtonPredictor("baseline").to(device)
     model_mask_aware = WaddingtonPredictor("mask_aware").to(device)
+    model_transformer = WaddingtonPredictor("transformer").to(device)
 
     optimizer_baseline = optim.AdamW(model_baseline.parameters(), lr=0.005)
     optimizer_mask_aware = optim.AdamW(model_mask_aware.parameters(), lr=0.005)
+    optimizer_transformer = optim.AdamW(model_transformer.parameters(), lr=0.005)
 
     criterion = nn.MSELoss()
 
     baseline_loss_history = []
     mask_aware_loss_history = []
+    transformer_loss_history = []
 
     # Training Loop
     epochs = 30
     for epoch in range(1, epochs + 1):
         model_baseline.train()
         model_mask_aware.train()
+        model_transformer.train()
 
         running_loss_baseline = 0.0
         running_loss_mask_aware = 0.0
+        running_loss_transformer = 0.0
 
         for batch in dataloader:
             x_raw = batch["x_raw"].to(device)
@@ -79,19 +84,30 @@ def main():
             optimizer_mask_aware.step()
             running_loss_mask_aware += loss_mask_aware.item()
 
+            # Transformer training
+            optimizer_transformer.zero_grad()
+            preds_transformer = model_transformer(x_raw, mask)
+            loss_transformer = criterion(preds_transformer, y_true)
+            loss_transformer.backward()
+            optimizer_transformer.step()
+            running_loss_transformer += loss_transformer.item()
+
         avg_loss_baseline = running_loss_baseline / len(dataloader)
         avg_loss_mask_aware = running_loss_mask_aware / len(dataloader)
+        avg_loss_transformer = running_loss_transformer / len(dataloader)
 
         baseline_loss_history.append(avg_loss_baseline)
         mask_aware_loss_history.append(avg_loss_mask_aware)
+        transformer_loss_history.append(avg_loss_transformer)
 
         print(
-            f"Epoch {epoch}/{epochs} | Baseline Loss: {avg_loss_baseline:.3f} | Mask-Aware Loss: {avg_loss_mask_aware:.3f}"
+            f"Epoch {epoch}/{epochs} | Baseline Loss: {avg_loss_baseline:.3f} | Mask-Aware Loss: {avg_loss_mask_aware:.3f} | Transformer Loss: {avg_loss_transformer:.3f}"
         )
 
     # Evaluation & Plotting
     model_baseline.eval()
     model_mask_aware.eval()
+    model_transformer.eval()
 
     # Fetch a single batch from the dataset to use as a test sequence
     test_batch = next(iter(dataloader))
@@ -104,12 +120,14 @@ def main():
     with torch.no_grad():
         test_pred_baseline = model_baseline(test_x_raw, test_mask)[0].cpu().numpy()
         test_pred_mask_aware = model_mask_aware(test_x_raw, test_mask)[0].cpu().numpy()
+        test_pred_transformer = model_transformer(test_x_raw, test_mask)[0].cpu().numpy()
 
-    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
 
     # Top Subplot
     ax1.plot(baseline_loss_history, "r--", label="Baseline")
     ax1.plot(mask_aware_loss_history, "b-", label="Mask-Aware")
+    ax1.plot(transformer_loss_history, "g:", linewidth=2, label="Transformer")
     ax1.set_title("MSE Loss Convergence")
     ax1.set_ylabel("MSE")
     ax1.legend()
@@ -118,6 +136,7 @@ def main():
     ax2.plot(test_y_true, "k-", linewidth=3, label="True Phase")
     ax2.plot(test_pred_baseline, "r--", label="Zero-Padded Baseline")
     ax2.plot(test_pred_mask_aware, "b-", label="Mask-Aware Routing")
+    ax2.plot(test_pred_transformer, "g:", linewidth=2, label="Causal Transformer")
     ax2.set_title("Waddington Phase Transition Tracking")
     ax2.legend()
 

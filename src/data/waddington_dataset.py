@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import os
 import math
 
+
 class SyntheticWaddingtonDataset(Dataset):
     """
     Synthetic biological dataset representing a cell moving through a phase transition
@@ -17,6 +18,7 @@ class SyntheticWaddingtonDataset(Dataset):
       - Modality 1 (10D): Sparse causal driver that tracks y_true but is only ~5% active.
     - mask: A 2-dimensional tensor representing the observability of the two modalities.
     """
+
     def __init__(self, size=100, seq_len=500):
         self.size = size
         self.seq_len = seq_len
@@ -48,7 +50,7 @@ class SyntheticWaddingtonDataset(Dataset):
         # The Mask
         mask_0 = torch.ones(self.seq_len, 1)
         mask_1 = (torch.rand(self.seq_len, 1) > 0.95).float()
-        
+
         # Hack to ensure observability
         if jump1 + 5 < self.seq_len:
             mask_1[jump1 + 5] = 1.0
@@ -63,27 +65,28 @@ class SyntheticWaddingtonDataset(Dataset):
 
         # Output
         x_raw = torch.cat([modality_0, modality_1], dim=1)
-        return {'x_raw': x_raw, 'mask': mask, 'y_true': y_true}
+        return {"x_raw": x_raw, "mask": mask, "y_true": y_true}
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     dataset = SyntheticWaddingtonDataset(size=1)
     batch = dataset[0]
-    
-    y_true = batch['y_true']
-    x_raw = batch['x_raw']
-    mask = batch['mask']
-    
+
+    y_true = batch["y_true"]
+    x_raw = batch["x_raw"]
+    mask = batch["mask"]
+
     fig, axes = plt.subplots(3, 1, figsize=(10, 12))
-    
-    axes[0].plot(y_true.numpy(), color='black', linewidth=2)
+
+    axes[0].plot(y_true.numpy(), color="black", linewidth=2)
     axes[0].set_title("y_true Trajectory")
-    
-    im1 = axes[1].imshow(x_raw.numpy().T, aspect='auto', cmap='viridis', interpolation='none')
+
+    im1 = axes[1].imshow(x_raw.numpy().T, aspect="auto", cmap="viridis", interpolation="none")
     axes[1].set_title("x_raw Heatmap")
-    
-    im2 = axes[2].imshow(mask.numpy().T, aspect='auto', cmap='binary', interpolation='none')
+
+    im2 = axes[2].imshow(mask.numpy().T, aspect="auto", cmap="binary", interpolation="none")
     axes[2].set_title("mask Heatmap")
-    
+
     plt.tight_layout()
     # Updated path to match current structure logic
     os.makedirs("output/data", exist_ok=True)
