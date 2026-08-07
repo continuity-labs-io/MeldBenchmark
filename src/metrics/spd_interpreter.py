@@ -37,7 +37,7 @@ from spd.experiments.lm.lm_decomposition import main as run_lm_decomposition
 
 def main():
     # Resolve the absolute path to your config
-        default_config = "configs/spd_mamba_config.yaml"
+    default_config = "configs/spd_mamba_config.yaml"
 
     parser = argparse.ArgumentParser(description="Run SPD on Mamba for MELD Interpretability")
     parser.add_argument("--config", type=str, default=default_config)
@@ -47,7 +47,7 @@ def main():
     if not config_path.exists():
         raise FileNotFoundError(f"Could not find SPD config at {config_path}")
         
-    out_dir = os.path.join(project_root, "output", "spd")
+    out_dir = "output/spd"
     os.makedirs(out_dir, exist_ok=True)
     
     # Monkey-patch Goodfire's Path to reroute the hardcoded output directory

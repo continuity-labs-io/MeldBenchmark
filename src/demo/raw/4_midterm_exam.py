@@ -51,7 +51,7 @@ class ContinuousEphysEngine(nn.Module):
 
 def plot_midterm_dashboard(time_axis, csd, ksm, lle, event_frame=None, filename="4_midterm_exam_dashboard.png"):
     """Generates the Lambda=40 Substrate Independence Dashboard."""
-        output_dir = "output"
+    output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     plt.style.use("dark_background")

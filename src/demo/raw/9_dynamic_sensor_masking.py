@@ -90,7 +90,7 @@ class DynamicMaskingEngine(nn.Module):
 
 
 def main():
-        output_dir = "output"
+    output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     device = get_optimal_device(allow_mps=False)

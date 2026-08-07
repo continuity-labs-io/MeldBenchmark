@@ -13,7 +13,7 @@ from src.utils.device import get_optimal_device
 from src.metrics.autopsy_engine import ThermodynamicAutopsyEngine
 
 def main():
-        output_dir = "output"
+    output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     device = get_optimal_device(allow_mps=False)

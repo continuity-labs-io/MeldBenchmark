@@ -57,7 +57,7 @@ def main():
     
     optimizer = optim.AdamW(engine.parameters(), lr=1e-3)
     engine.train()
-    for i in range(15):
+    for _i in range(15):
         optimizer.zero_grad()
         preds = engine(clean_data[:, :-1, :])
         loss = F.mse_loss(preds, clean_data[:, 1:, :])
@@ -101,7 +101,7 @@ def main():
     print(json.dumps(autopsy_report, indent=2))
     print("="*50 + "\n")
     
-        output_dir = "output"
+    output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     raw_numpy = test_seq[0].detach().cpu().numpy()

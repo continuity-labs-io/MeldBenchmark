@@ -46,7 +46,7 @@ from src.metrics.hardware_monitor import HardwareMonitor
 from src.utils.device import get_optimal_device
 
 def plot_ephys_dashboard(raw_ephys, vram_history, ksm_scores, relevance, event_frame, crash_ms, filename="8_ephys_demo.png"):
-        output_dir = "output"
+    output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     plt.style.use("dark_background")
@@ -94,7 +94,7 @@ def plot_ephys_dashboard(raw_ephys, vram_history, ksm_scores, relevance, event_f
     im3 = ax3.imshow(rel_sub.T, aspect="auto", cmap="coolwarm", vmin=-vmax, vmax=vmax,
                      extent=[time_axis[0], time_axis[-1], 64, 0])
     ax3.axvline(x=event_time, color="white", linestyle="--", linewidth=2)
-    ax3.set_title(f"Panel 3: MambaLRPEpsilon Root Cause Attribution (Targeted at Crash Frame)", color="white", fontweight="bold")
+    ax3.set_title("Panel 3: MambaLRPEpsilon Root Cause Attribution (Targeted at Crash Frame)", color="white", fontweight="bold")
     ax3.set_xlabel("Continuous Time Context (Seconds)")
     ax3.set_ylabel("Electrode Array")
     
@@ -139,7 +139,7 @@ def main():
     EVENT_FRAME = int((CRASH_INJECTION_MS / 1000.0) * SAMPLING_RATE_HZ)
     TARGET_CHANNELS = 1024
     
-            file_path = "data/ephys/example.brw"
+    file_path = "data/ephys/example.brw"
     
     print("[*] 1. Initializing ContinuousHDMEADataset...")
     try:
@@ -170,7 +170,6 @@ def main():
     
     vram_history = []
     process = psutil.Process()
-    hw_monitor = HardwareMonitor(device) # Instantiated to satisfy requirement conceptually
     
     state_t = batch[:, :-1, :]
     target_t_plus_1 = batch[:, 1:, :]

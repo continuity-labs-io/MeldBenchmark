@@ -87,7 +87,7 @@ class ContinuousHDMEADataset(Dataset):
 
 if __name__ == "__main__":
     # Define default directory relative to the repository root
-            default_dir = "data/ephys"
+    default_dir = "data/ephys"
     
     # Path to the dummy example file
     dummy_file_path = os.path.join(default_dir, "example.brw")
@@ -104,7 +104,7 @@ if __name__ == "__main__":
             target_channels=1024
         )
         
-        logger.info(f"Dataset successfully initialized.")
+        logger.info("Dataset successfully initialized.")
         logger.info(f"Total frames: {dataset.total_frames}")
         logger.info(f"Sampling rate: {dataset.sampling_rate} Hz")
         logger.info(f"Total chunks: {len(dataset)}")

@@ -27,7 +27,7 @@ from src.models.losses.meld_loss import TopoContrastiveLoss
 from src.metrics.metrics import ThermodynamicMetrics
 
 def main():
-        output_dir = "output"
+    output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     device = torch.device('cpu')

@@ -98,7 +98,6 @@ class SigmaPhaseLoader:
         vector_field = MorphologicalVectorField(dim=self.target_components)
         vector_field.eval()
         
-        time_minutes_tensor = torch.tensor(time_minutes, dtype=torch.float32)
         latent_vectors_tensor = torch.tensor(latent_vectors, dtype=torch.float32)
         
         with torch.no_grad():

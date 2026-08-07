@@ -287,7 +287,7 @@ def main():
     print(f"[*] Booting MELD End-to-End Compiler on: {device.type.upper()}")
 
     print("[*] Ingesting AO-LLSM Optical Telemetry...")
-    data_dir = os.path.join(project_root, "data/raw_tiffs")
+    data_dir = "data/raw_tiffs"
 
     SEQUENCE_LENGTH = 10
     CROP_SIZE = (128, 128, 128)

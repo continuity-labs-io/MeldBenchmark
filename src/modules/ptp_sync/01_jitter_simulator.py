@@ -84,8 +84,8 @@ def main():
     sensor_a_data.sort(key=lambda x: x[0])
     sensor_b_data.sort(key=lambda x: x[0])
     
-    phys_t_a, sw_t_a, val_a = zip(*sensor_a_data)
-    phys_t_b, sw_t_b, val_b = zip(*sensor_b_data)
+    phys_t_a, sw_t_a, val_a = zip(*sensor_a_data, strict=False)
+    phys_t_b, sw_t_b, val_b = zip(*sensor_b_data, strict=False)
     
     fig, axs = plt.subplots(2, 1, figsize=(12, 8), sharex=False)
     

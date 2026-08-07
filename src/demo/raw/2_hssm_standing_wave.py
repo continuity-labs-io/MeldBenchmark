@@ -127,7 +127,7 @@ def plot_results(time, dt, x1_A, x2_A, x1_B, x2_B, model):
     
     plt.tight_layout()
     # Resolve the output directory relative to the script location (workspace_root/src/demo/.. -> workspace_root)
-        out_path = "output/2_hssm_standing_wave.png"
+    out_path = "output/2_hssm_standing_wave.png"
     
     plt.savefig(out_path, dpi=300)
     print(f"Simulation complete. Plot saved to '{out_path}'.")
