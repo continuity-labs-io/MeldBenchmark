@@ -8,6 +8,12 @@ logger = logging.getLogger(__name__)
 
 
 class ThermodynamicAutopsyEngine:
+    """
+    Engine for generating causal attribution reports ("Autopsies") for sequence models.
+    Uses Layer-wise Relevance Propagation (LRP) or Taylor attribution to trace back from
+    a target event (like a crash) to find the latent root cause in the input sequence.
+    """
+
     def __init__(self, model, feature_names=None):
         self.model = model
         if feature_names is None:
@@ -40,7 +46,37 @@ class ThermodynamicAutopsyEngine:
         names.extend(voltage_tracks)
         return names
 
-    def generate_autopsy(self, x_sequence, crash_time_step, confidence_score=0.98):
+    def generate_autopsy(
+        self, x_sequence: torch.Tensor, crash_time_step: int, confidence_score: float = 0.98
+    ) -> dict:
+        """
+        Generates a structured causal trace identifying the root cause of an event.
+
+        Args:
+            x_sequence (torch.Tensor): The input telemetry tensor of shape [1, Time, 114].
+            crash_time_step (int): The specific time index (T) where the target event occurred.
+            confidence_score (float): Optional confidence threshold. Default is 0.98.
+
+        Returns:
+            dict: A structured autopsy report with the following schema:
+                {
+                    "status": str,                       # E.g., "CRITICAL_FAILURE_PREDICTED"
+                    "predicted_crash_time": str,         # E.g., "T=140"
+                    "confidence_score": float,           # E.g., 0.98
+                    "anomaly_ontology": {
+                        "primary_latent_driver": str,    # E.g., "Psi_TP53"
+                        "causal_trace": list[dict]       # Top 3 anomalous events leading to the crash
+                    }
+                }
+
+                Each dict in `causal_trace` contains:
+                {
+                    "time_step": str,                    # E.g., "T=110"
+                    "flagged_input": str,                # The name of the offending feature
+                    "relevance_score": float,            # Normalized LRP attribution score
+                    "mechanism": str                     # High-level biological mechanism
+                }
+        """
         # x_sequence: [1, Time, 114]
 
         # 1. Compute first-order Taylor attribution

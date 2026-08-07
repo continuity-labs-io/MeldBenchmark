@@ -1,3 +1,11 @@
+"""
+Demo 03: Multimodal Autopsy
+
+This script demonstrates the Layer-wise Relevance Propagation (LRP) causality engine.
+It traces back from a catastrophic failure event (Structural Collapse) to uncover the latent root
+cause (an earlier RNA Stress Alarm) across complex, multimodal sequence data.
+"""
+
 import os
 import json
 import torch

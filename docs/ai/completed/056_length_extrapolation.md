@@ -10,9 +10,9 @@ phase transitions happen out-of-distribution during our 2000-step test). Replace
 the hardcoded `jump1` and `jump2` variable declarations with:
 
 ```python
-        # Proportional jumps based on seq_len
-        jump1 = torch.randint(int(self.seq_len * 0.2), int(self.seq_len * 0.4), (1,)).item()
-        jump2 = torch.randint(int(self.seq_len * 0.6), int(self.seq_len * 0.8), (1,)).item()
+# Proportional jumps based on seq_len
+jump1 = torch.randint(int(self.seq_len * 0.2), int(self.seq_len * 0.4), (1,)).item()
+jump2 = torch.randint(int(self.seq_len * 0.6), int(self.seq_len * 0.8), (1,)).item()
 ```
 
 # Task 2: Create the Extrapolation Script

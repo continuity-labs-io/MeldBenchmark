@@ -1,3 +1,11 @@
+"""
+Demo 01: Bio-Blade Engine
+
+This script demonstrates the Bio-Blade engine, which simulates high-throughput processing of
+biological data (like electrophysiology). It shows how the system can ingest raw telemetry
+and score it (e.g., KSM/CSD scores) to detect biological events at high speeds.
+"""
+
 import os
 import time
 import logging

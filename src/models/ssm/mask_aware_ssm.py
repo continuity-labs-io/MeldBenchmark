@@ -33,7 +33,9 @@ class MaskAwareSSM(nn.Module):
             # THE PHYSICS HACK
             dt_gated = dt_base * g_t + 1e-8
 
-            B = self.B_proj(x_t)
+            # EXPLICIT INPUT GATING: Block offline sensors from adding ghost noise to the state
+            B = self.B_proj(x_t) * g_t
+
             A_bar = torch.exp(A * dt_gated)
             B_bar = (A_bar - 1.0) / (A - 1e-8) * B
 

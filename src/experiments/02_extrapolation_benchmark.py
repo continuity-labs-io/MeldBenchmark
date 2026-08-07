@@ -1,3 +1,15 @@
+"""
+Experiment 02: Length Extrapolation Stress Test
+
+This script tests the out-of-distribution (OOD) generalization of the models trained on the Waddington
+dataset. While models are trained on short sequences (e.g., 500 steps), they are evaluated on vastly
+longer sequences (e.g., 2000 steps).
+
+The purpose is to demonstrate failure modes of learned positional embeddings in Transformers, and to
+prove the stability of State Space Models (SSMs) when outfitted with the Dual-Lock Stasis system
+(Stasis Priors and Explicit Payload Gating) to prevent ghost noise integration over sparse inputs.
+"""
+
 import sys
 import os
 import torch
@@ -14,8 +26,8 @@ from torch.utils.data import DataLoader, Dataset
 
 # Wrapper for dataset to dynamically change its size for DataLoader compatibility
 class DatasetWrapper(Dataset):
-    def __init__(self, size: int):
-        self.dataset = SyntheticWaddingtonDataset(size=size)
+    def __init__(self, size: int, seq_len: int = 500):
+        self.dataset = SyntheticWaddingtonDataset(size=size, seq_len=seq_len)
 
     def __len__(self):
         return len(self.dataset)
@@ -29,7 +41,7 @@ def main():
     device = get_optimal_device(verbose=True)
 
     # Data Preparation
-    dataset = DatasetWrapper(size=100)
+    dataset = DatasetWrapper(size=100, seq_len=500)
     dataloader = DataLoader(dataset, batch_size=8, shuffle=True)
 
     # Model Initialization
@@ -48,7 +60,7 @@ def main():
     transformer_loss_history = []
 
     # Training Loop
-    epochs = 30
+    epochs = 40
     for epoch in range(1, epochs + 1):
         model_baseline.train()
         model_mask_aware.train()

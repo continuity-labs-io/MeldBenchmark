@@ -1,3 +1,14 @@
+"""
+Experiment 01: Train Synthetic Benchmark
+
+This script trains and evaluates three models (Baseline SSM, Mask-Aware SSM, and a Causal Transformer)
+on a synthetic Waddington landscape dataset. The goal is to simulate intermittent biological sensors
+(via a boolean mask) and track underlying continuous biological phases over time.
+
+This benchmark establishes the baseline capability of these architectures to learn the latent dynamics
+from gated sensor data.
+"""
+
 import sys
 import os
 import torch

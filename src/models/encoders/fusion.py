@@ -16,6 +16,10 @@ class BiologicalCartridgeFusion(nn.Module):
         self.W_cart = nn.Linear(d_cartridge, d_model, bias=False)
         self.W_gate = nn.Linear(n_modalities, d_model, bias=True)
 
+        # THE STASIS PRIOR: Default closed (-3), opens when active (+6)
+        torch.nn.init.constant_(self.W_gate.bias, -3.0)
+        torch.nn.init.constant_(self.W_gate.weight, 6.0 / n_modalities)
+
     def forward(self, x_raw: torch.Tensor, mask: torch.Tensor):
         latent_x = self.W_cart(x_raw)
         latent_gate = torch.sigmoid(self.W_gate(mask))

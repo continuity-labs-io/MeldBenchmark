@@ -1,3 +1,11 @@
+"""
+Demo 02: Indestructible Edge
+
+This script demonstrates the fault-tolerance and self-healing routing capabilities of the network.
+It simulates catastrophic hardware failures (e.g., sensor dropouts) and shows how the architecture
+seamlessly maintains representation and inference despite severe input corruption.
+"""
+
 import os
 import torch
 import torch.nn as nn

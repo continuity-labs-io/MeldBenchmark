@@ -1,5 +1,4 @@
 """
-MELD Core Architecture: Hardware Substrate Abstraction
 Provides a unified interface for memory management, synchronization, and
 hardware-specific mathematical operations across Apple Silicon, NVIDIA CUDA, and CPUs.
 """

@@ -1,3 +1,11 @@
+"""
+Demo 04: Masked State Space Model
+
+This script demonstrates the core Masked State Space Model (SSM) architecture.
+It shows how the model handles sparse, intermittent multimodal sensor data by dynamically
+gating the continuous state transitions based on sensor availability masks.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
