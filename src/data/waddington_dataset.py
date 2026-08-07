@@ -30,8 +30,9 @@ class SyntheticWaddingtonDataset(Dataset):
     def __getitem__(self, idx):
         # The Target (y_true)
         y_true = torch.zeros(self.seq_len, 1)
-        jump1 = torch.randint(100, 200, (1,)).item()
-        jump2 = torch.randint(300, 400, (1,)).item()
+        # Proportional jumps based on seq_len
+        jump1 = torch.randint(int(self.seq_len * 0.2), int(self.seq_len * 0.4), (1,)).item()
+        jump2 = torch.randint(int(self.seq_len * 0.6), int(self.seq_len * 0.8), (1,)).item()
         y_true[jump1:jump2] = 1.0
         y_true[jump2:] = 2.0
         y_true += torch.randn(self.seq_len, 1) * 0.02
