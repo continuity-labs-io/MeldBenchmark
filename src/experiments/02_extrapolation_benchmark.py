@@ -8,6 +8,7 @@ import pandas as pd
 
 from src.data.waddington_dataset import SyntheticWaddingtonDataset
 from src.models.simulators.waddington_predictor import WaddingtonPredictor
+from src.utils.device import get_optimal_device
 from torch.utils.data import DataLoader, Dataset
 
 
@@ -25,14 +26,7 @@ class DatasetWrapper(Dataset):
 
 def main():
     # Setup Device
-    device = torch.device(
-        "cuda"
-        if torch.cuda.is_available()
-        else "mps"
-        if torch.backends.mps.is_available()
-        else "cpu"
-    )
-    print(f"Using device: {device}")
+    device = get_optimal_device(verbose=True)
 
     # Data Preparation
     dataset = DatasetWrapper(size=100)

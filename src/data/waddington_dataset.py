@@ -91,5 +91,5 @@ if __name__ == "__main__":
     plt.tight_layout()
     # Updated path to match current structure logic
     os.makedirs("output/data", exist_ok=True)
-    plt.savefig("output/data/01_synthetic_data_preview.png")
-    print("Saved diagnostic preview to output/data/01_synthetic_data_preview.png")
+    plt.savefig("output/data/00_synthetic_data_preview.png")
+    print("Saved diagnostic preview to output/data/00_synthetic_data_preview.png")
