@@ -1,8 +1,8 @@
-import os
 import torch
 from torch.utils.data import Dataset
-import numpy as np
-
+import matplotlib.pyplot as plt
+import os
+import math
 
 class SyntheticWaddingtonDataset(Dataset):
     """
@@ -10,111 +10,82 @@ class SyntheticWaddingtonDataset(Dataset):
     (the Waddington landscape).
 
     Generates synthetic sequences comprising:
-    - y_true: The continuous hidden trajectory.
-    - x_raw: A 30-dimensional tensor (20-D continuous sine-wave signals + 10-D sparse signals).
+    - y_true: The 1D target tracking discrete phase transitions.
+    - x_raw: A 30-dimensional tensor composed of two modalities:
+      - Modality 0 (20D): Continuous background noise (Gaussian + sine waves) with no
+        causal link to the target (prevents shortcut learning).
+      - Modality 1 (10D): Sparse causal driver that tracks y_true but is only ~5% active.
     - mask: A 2-dimensional tensor representing the observability of the two modalities.
     """
-
-    def __init__(self, size: int = 100, seq_len: int = 500):
-        """
-        Args:
-            size (int): Number of sequences in the dataset.
-            seq_len (int): Length of each generated sequence.
-        """
+    def __init__(self, size=100, seq_len=500):
         self.size = size
         self.seq_len = seq_len
+        self.W_1 = torch.randn(1, 10)
 
-    def __len__(self) -> int:
+    def __len__(self):
         return self.size
 
-    def __getitem__(self, idx: int) -> dict:
-        """
-        Generates a single synthetic sequence.
+    def __getitem__(self, idx):
+        # The Target (y_true)
+        y_true = torch.zeros(self.seq_len, 1)
+        jump1 = torch.randint(100, 200, (1,)).item()
+        jump2 = torch.randint(300, 400, (1,)).item()
+        y_true[jump1:jump2] = 1.0
+        y_true[jump2:] = 2.0
+        y_true += torch.randn(self.seq_len, 1) * 0.02
 
-        Returns:
-            dict: Containing 'x_raw' (seq_len, 30), 'mask' (seq_len, 2), and 'y_true' (seq_len, 1).
-        """
-        t = torch.arange(self.seq_len, dtype=torch.float32)
-
-        # --- 1. The True State (The Target) ---
-        # Center the sigmoid transition randomly between t=200 and t=300
-        center = torch.randint(200, 301, (1,)).item()
-        steepness = 0.05
-        y_true = torch.sigmoid((t - center) * steepness)
-
-        # Add a random walk to simulate biological noise
-        noise = torch.randn(self.seq_len) * 0.01
-        random_walk = torch.cumsum(noise, dim=0)
-        y_true = y_true + random_walk
-        y_true = y_true.unsqueeze(1)  # [seq_len, 1]
-
-        # --- 2. The Modalities (The Raw Data) ---
-        # Modality 0: Continuous, 20-Dimensional
-        # High-frequency sine wave tracking y_true baseline
+        # Modality 0 (Continuous Voltage, 20D) -> Pure Background Noise
+        # Generate pure Gaussian noise and random sine waves
+        t = torch.arange(self.seq_len).float().unsqueeze(1).expand(-1, 20)
         freqs = torch.rand(20) * 0.5 + 0.1
-        phases = torch.rand(20) * 2 * np.pi
-        time_matrix = t.unsqueeze(1).expand(-1, 20)
-        sine_waves = torch.sin(time_matrix * freqs + phases) * 0.2
-        mod0 = sine_waves + y_true.expand(-1, 20) + torch.randn(self.seq_len, 20) * 0.05
+        phases = torch.rand(20) * 2 * math.pi
+        sine_waves = torch.sin(t * freqs + phases) * 0.2
+        modality_0 = sine_waves + torch.randn(self.seq_len, 20) * 0.05
 
-        # Modality 1: Sparse, 10-Dimensional
-        # Slow-moving signal tracking y_true with noise
-        mod1 = y_true.expand(-1, 10) + torch.randn(self.seq_len, 10) * 0.1
+        # Modality 1 (Sparse Epigenetics, 10D) -> The Causal Driver
+        modality_1 = y_true * self.W_1 + torch.randn(self.seq_len, 10) * 0.05
 
-        # --- 3. The Masking (Hardware Limits) ---
-        mask = torch.zeros(self.seq_len, 2, dtype=torch.float32)
+        # The Mask
+        mask_0 = torch.ones(self.seq_len, 1)
+        mask_1 = (torch.rand(self.seq_len, 1) > 0.95).float()
+        
+        # Hack to ensure observability
+        if jump1 + 5 < self.seq_len:
+            mask_1[jump1 + 5] = 1.0
+        if jump2 + 5 < self.seq_len:
+            mask_1[jump2 + 5] = 1.0
 
-        # Modality 0 is fully observed
-        mask[:, 0] = 1.0
+        # CRITICAL ZERO-PADDING
+        modality_1 = modality_1 * mask_1
 
-        # Modality 1 is sparse (e.g., randomly 5% of timesteps)
-        sparse_mask = (torch.rand(self.seq_len) < 0.05).float()
-        mask[:, 1] = sparse_mask
+        # Combine masks
+        mask = torch.cat([mask_0, mask_1], dim=1)
 
-        # CRITICAL: Apply mask to Modality 1. Force unobserved timesteps to exact 0.0
-        mod1 = mod1 * sparse_mask.unsqueeze(1)
+        # Output
+        x_raw = torch.cat([modality_0, modality_1], dim=1)
+        return {'x_raw': x_raw, 'mask': mask, 'y_true': y_true}
 
-        # Concatenate Modality 0 and Modality 1
-        x_raw = torch.cat([mod0, mod1], dim=1)  # [seq_len, 30]
-
-        return {"x_raw": x_raw, "mask": mask, "y_true": y_true}
-
-
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-
-    # Instantiate dataset and fetch first sample
+if __name__ == '__main__':
     dataset = SyntheticWaddingtonDataset(size=1)
-    sample = dataset[0]
-    x_raw = sample["x_raw"]
-    mask = sample["mask"]
-    y_true = sample["y_true"]
-
-    # Plotting
+    batch = dataset[0]
+    
+    y_true = batch['y_true']
+    x_raw = batch['x_raw']
+    mask = batch['mask']
+    
     fig, axes = plt.subplots(3, 1, figsize=(10, 12))
-
-    # 1. 1D y_true trajectory
-    axes[0].plot(y_true.numpy(), color="black", linewidth=2)
-    axes[0].set_title("y_true Trajectory (Waddington Landscape)")
-    axes[0].set_ylabel("Phase Value")
-
-    # 2. Heatmap of 30-D x_raw
-    im1 = axes[1].imshow(x_raw.numpy().T, aspect="auto", cmap="viridis", interpolation="none")
-    axes[1].set_title("x_raw Heatmap (Top 20: Continuous Modality 0, Bottom 10: Sparse Modality 1)")
-    axes[1].set_ylabel("Dimension Index")
-    fig.colorbar(im1, ax=axes[1], fraction=0.046, pad=0.04)
-
-    # 3. 2-D Mask over time
-    im2 = axes[2].imshow(mask.numpy().T, aspect="auto", cmap="binary", interpolation="none")
-    axes[2].set_title("Mask Observability (Top: Modality 0, Bottom: Modality 1)")
-    axes[2].set_xlabel("Time Step")
-    axes[2].set_ylabel("Modality Index")
-    axes[2].set_yticks([0, 1])
-
+    
+    axes[0].plot(y_true.numpy(), color='black', linewidth=2)
+    axes[0].set_title("y_true Trajectory")
+    
+    im1 = axes[1].imshow(x_raw.numpy().T, aspect='auto', cmap='viridis', interpolation='none')
+    axes[1].set_title("x_raw Heatmap")
+    
+    im2 = axes[2].imshow(mask.numpy().T, aspect='auto', cmap='binary', interpolation='none')
+    axes[2].set_title("mask Heatmap")
+    
     plt.tight_layout()
-
-    # Ensure outputs directory exists
+    # Updated path to match current structure logic
     os.makedirs("output/data", exist_ok=True)
-    out_path = "output/data/01_synthetic_data_preview.png"
-    plt.savefig(out_path)
-    print(f"Saved diagnostic preview to {out_path}")
+    plt.savefig("output/data/01_synthetic_data_preview.png")
+    print("Saved diagnostic preview to output/data/01_synthetic_data_preview.png")
