@@ -37,9 +37,9 @@ URL: [https://zenodo.org/records/13908319](https://zenodo.org/records/13908319)
 You can place a downloaded `.brw` file into the appropriate directory (e.g., `data/ephys/example.brw`) for the dataloaders to use.
 
 ### Installation
-Ensure you have PyTorch and the required dependencies installed (including `mamba_ssm` and `transformers==4.40.1`):
+Ensure you have PyTorch and the required dependencies installed. You should install the project in editable mode from the repository root:
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 *(Note: Mamba SSM has known precision issues on Apple Silicon (MPS). The demo scripts automatically default to CPU for the Mamba training loop to prevent NaN instabilities.)*
 

@@ -46,8 +46,7 @@ from src.metrics.hardware_monitor import HardwareMonitor
 from src.utils.device import get_optimal_device
 
 def plot_ephys_dashboard(raw_ephys, vram_history, ksm_scores, relevance, event_frame, crash_ms, filename="8_ephys_demo.png"):
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-    output_dir = os.path.join(project_root, "output")
+        output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     plt.style.use("dark_background")
@@ -140,9 +139,7 @@ def main():
     EVENT_FRAME = int((CRASH_INJECTION_MS / 1000.0) * SAMPLING_RATE_HZ)
     TARGET_CHANNELS = 1024
     
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.abspath(os.path.join(current_dir, "../../.."))
-    file_path = os.path.join(repo_root, "data", "ephys", "example.brw")
+            file_path = "data/ephys/example.brw"
     
     print("[*] 1. Initializing ContinuousHDMEADataset...")
     try:

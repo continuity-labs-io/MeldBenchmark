@@ -23,8 +23,7 @@ from src.utils.device import get_optimal_device
 from src.metrics.mamba_lrp import MambaLRPEpsilon
 
 def plot_lrp_dashboard(raw_ephys, relevance, event_frame, filename="6_mamba_lrp_dashboard.png"):
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-    output_dir = os.path.join(project_root, "output")
+        output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     plt.style.use("dark_background")

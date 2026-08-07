@@ -37,8 +37,7 @@ from spd.experiments.lm.lm_decomposition import main as run_lm_decomposition
 
 def main():
     # Resolve the absolute path to your config
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-    default_config = os.path.join(project_root, "configs", "spd_mamba_config.yaml")
+        default_config = "configs/spd_mamba_config.yaml"
 
     parser = argparse.ArgumentParser(description="Run SPD on Mamba for MELD Interpretability")
     parser.add_argument("--config", type=str, default=default_config)

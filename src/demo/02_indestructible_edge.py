@@ -173,8 +173,7 @@ def main():
         
         preds, _ = engine(corrupt_test)
         
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-    output_dir = os.path.join(project_root, "output")
+        output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     plot_indestructible_dashboard(corrupt_test[0], clean_test[0], preds[0], 100, output_dir)

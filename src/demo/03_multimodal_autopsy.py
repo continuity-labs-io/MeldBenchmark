@@ -101,8 +101,7 @@ def main():
     print(json.dumps(autopsy_report, indent=2))
     print("="*50 + "\n")
     
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-    output_dir = os.path.join(project_root, "output")
+        output_dir = "output"
     os.makedirs(output_dir, exist_ok=True)
     
     raw_numpy = test_seq[0].detach().cpu().numpy()

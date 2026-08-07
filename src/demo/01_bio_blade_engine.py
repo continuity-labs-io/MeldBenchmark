@@ -69,7 +69,7 @@ def plot_bio_blade_dashboard(raw_telemetry, ksm_scores, csd_scores, event_frame)
     ax3.grid(True, alpha=0.2)
 
     plt.tight_layout()
-    output_path = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../output")), "01_bio_blade_engine.png")
+    output_path = "output/01_bio_blade_engine.png"
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     plt.savefig(output_path)
     logger.info(f"[*] Dashboard saved to {output_path}")
@@ -98,9 +98,8 @@ def main():
     device = get_optimal_device(allow_mps=False, verbose=True)
     logger.info("[*] Initializing Data Ingestion...")
     
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
-    FILE_CONTROL = os.path.join(project_root, "data", "ephys", "Drug_2953_control.raw.h5")
-    FILE_CRASH = os.path.join(project_root, "data", "ephys", "Drug_2953_50uM.raw.h5")
+        FILE_CONTROL = "data/ephys/Drug_2953_control.raw.h5"
+    FILE_CRASH = "data/ephys/Drug_2953_50uM.raw.h5"
     
     try:
         dataset_control = MaxWellHDMEADataset(FILE_CONTROL, sequence_length=SEQ_LEN, target_channels=TARGET_CHANNELS)
