@@ -56,9 +56,9 @@ def test_waddington_shortcut_leakage():
 
     # Modality 0 should have essentially zero correlation (it's random noise and independent sines)
     # Give a small buffer for random chance correlation
-    assert (
-        max_mod0_corr < 0.15
-    ), f"Data leakage detected! Modality 0 has correlation {max_mod0_corr} with target."
+    assert max_mod0_corr < 0.15, (
+        f"Data leakage detected! Modality 0 has correlation {max_mod0_corr} with target."
+    )
 
     # Now check Modality 1 (when it is NOT masked out)
     mod1_active_idx = mask[:, 1] == 1.0
@@ -75,6 +75,6 @@ def test_waddington_shortcut_leakage():
             if corr > max_mod1_corr:
                 max_mod1_corr = corr
 
-    assert (
-        max_mod1_corr > 0.5
-    ), f"Causal link missing! Modality 1 has max correlation {max_mod1_corr} with target."
+    assert max_mod1_corr > 0.5, (
+        f"Causal link missing! Modality 1 has max correlation {max_mod1_corr} with target."
+    )

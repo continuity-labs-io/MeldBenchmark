@@ -51,7 +51,7 @@ def main():
         loss.backward()
         optimizer.step()
 
-        print(f"    Iteration {i+1}/{iterations} | Loss: {loss.item():.4f}")
+        print(f"    Iteration {i + 1}/{iterations} | Loss: {loss.item():.4f}")
 
     print("[*] Simulating Waddington Crash & running MambaLRP attribution...")
     engine.eval()

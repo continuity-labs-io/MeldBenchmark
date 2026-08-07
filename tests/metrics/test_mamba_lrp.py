@@ -35,6 +35,6 @@ def test_relevance_conservation_axiom():
     error = abs(expected_relevance - actual_relevance)
 
     # The LRP-epsilon rule should conserve relevance within a small epsilon bound
-    assert (
-        error < 1e-2
-    ), f"Relevance Conservation Axiom Violated! Expected: {expected_relevance}, Actual: {actual_relevance}, Error: {error}"
+    assert error < 1e-2, (
+        f"Relevance Conservation Axiom Violated! Expected: {expected_relevance}, Actual: {actual_relevance}, Error: {error}"
+    )

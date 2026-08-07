@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from src.data.waddington_dataset import SyntheticWaddingtonDataset
 from src.models.simulators.waddington_predictor import WaddingtonPredictor
@@ -144,6 +145,17 @@ def main():
     os.makedirs("output/data", exist_ok=True)
     plt.savefig("output/data/02_benchmark_results.png")
     print("Saved plot to output/data/02_benchmark_results.png")
+
+    df = pd.DataFrame(
+        {
+            "True Phase": test_y_true.flatten(),
+            "Baseline Predict": test_pred_baseline.flatten(),
+            "Mask-Aware Predict": test_pred_mask_aware.flatten(),
+            "Transformer Predict": test_pred_transformer.flatten(),
+        }
+    )
+    df.to_csv("output/data/02_benchmark.csv", index=False)
+    print("Saved CSV to output/data/02_benchmark.csv")
 
 
 if __name__ == "__main__":

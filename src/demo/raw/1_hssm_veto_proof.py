@@ -250,9 +250,9 @@ def evaluate_and_plot(compressor, mamba_engine, device):
     import numpy as np
 
     surprise_variance = np.var(ksm_hom[:50])
-    assert (
-        surprise_variance < 0.1
-    ), f"Veto Proof Failed! Surprise metric is not flat. Variance: {surprise_variance:.6f}"
+    assert surprise_variance < 0.1, (
+        f"Veto Proof Failed! Surprise metric is not flat. Variance: {surprise_variance:.6f}"
+    )
     print(
         f"[*] Veto Proof Passed: Surprise metric variance during pump artifact is {surprise_variance:.6f}"
     )

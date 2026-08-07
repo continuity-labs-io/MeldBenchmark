@@ -23,6 +23,7 @@ When writing or modifying core modules:
 1. Always initialize a logger at the top of the file:
    ```python
    import logging
+
    logger = logging.getLogger(__name__)
    ```
 2. Use appropriate log levels rather than printing everything:

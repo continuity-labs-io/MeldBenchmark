@@ -196,7 +196,7 @@ def main():
         optimizer.step()
 
         if (i + 1) % 10 == 0:
-            logger.info(f"    Iteration {i+1}/30 - Loss: {loss.item():.4f}")
+            logger.info(f"    Iteration {i + 1}/30 - Loss: {loss.item():.4f}")
 
     logger.info("[*] Simulating catastrophic sensor failure (NaN)...")
     engine.eval()

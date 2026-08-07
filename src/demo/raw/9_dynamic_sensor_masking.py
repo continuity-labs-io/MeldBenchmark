@@ -160,7 +160,7 @@ def main():
         # 1. Early Stopping on Gradient Collapse
         if current_grad_norm < 1e-4:
             pbar.write(
-                f"[*] Early Stopping Triggered: Gradients vanished at iteration {iteration+1}"
+                f"[*] Early Stopping Triggered: Gradients vanished at iteration {iteration + 1}"
             )
             break
 
@@ -173,7 +173,7 @@ def main():
 
         if patience_counter >= PATIENCE_LIMIT:
             pbar.write(
-                f"[*] Early Stopping Triggered: Loss plateaued for {PATIENCE_LIMIT} iterations (Stopped at {iteration+1})"
+                f"[*] Early Stopping Triggered: Loss plateaued for {PATIENCE_LIMIT} iterations (Stopped at {iteration + 1})"
             )
             break
 

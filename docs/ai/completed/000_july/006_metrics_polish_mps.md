@@ -42,5 +42,5 @@ the Hysteresis rollout.
         padding = z_healthy_base[-1:, :].repeat(pad_len, 1)
         z_healthy_path = torch.cat([z_healthy_base, padding], dim=0)
     else:
-        z_healthy_path = z_healthy_base[:z_rescue_path.shape[0], :]
+        z_healthy_path = z_healthy_base[: z_rescue_path.shape[0], :]
     ```

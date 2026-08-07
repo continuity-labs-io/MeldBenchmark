@@ -74,7 +74,7 @@ def main():
         optimizer.step()
 
         loss_history.append(loss.item())
-        print(f"    Iteration {i+1}/{iterations} | Loss: {loss.item():.4f}")
+        print(f"    Iteration {i + 1}/{iterations} | Loss: {loss.item():.4f}")
 
     print("[*] Training Complete. Contrastive Alignment achieved.")
 

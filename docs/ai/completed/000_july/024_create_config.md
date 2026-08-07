@@ -10,6 +10,7 @@ import os
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class MeldSettings(BaseSettings):
     # --- TEMPORAL RESOLUTION CONSTANTS ---
     OPTICS_HZ: int = Field(default=100, description="Optical imaging framerate")
@@ -22,7 +23,9 @@ class MeldSettings(BaseSettings):
     LLE_WINDOW_SIZE: int = Field(default=4, description="Local Lyapunov Exponent sliding window")
 
     # --- PHYSICS LOSS PARAMETERS ---
-    LIPSCHITZ_CONSTANT: float = Field(default=1.5, description="Upper bound for thermodynamic state change")
+    LIPSCHITZ_CONSTANT: float = Field(
+        default=1.5, description="Upper bound for thermodynamic state change"
+    )
     MELD_ALPHA: float = Field(default=1.0, description="Forecast MSE Weight")
     MELD_BETA: float = Field(default=0.1, description="Lipschitz Penalty Weight")
     MELD_GAMMA: float = Field(default=0.5, description="Time-Reversal Error Weight")
@@ -36,6 +39,7 @@ class MeldSettings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
 
 settings = MeldSettings()
 ```

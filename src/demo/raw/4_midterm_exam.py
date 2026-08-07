@@ -223,7 +223,7 @@ def main():
 
         if (step + 1) % 5 == 0 or (step + 1) == 1:
             print(
-                f"    Step {step+1:03d}/{MAX_TRAIN_STEPS} | Total Loss: {loss.item():.4f} | "
+                f"    Step {step + 1:03d}/{MAX_TRAIN_STEPS} | Total Loss: {loss.item():.4f} | "
                 f"Forecast: {loss_metrics['forecast_loss']:.4f} | "
                 f"Lipschitz: {loss_metrics['lipschitz_penalty']:.4f} | "
                 f"Reverse: {loss_metrics['reverse_loss']:.4f}"
@@ -269,7 +269,7 @@ def main():
         lle_scores = metrics.calculate_lle(z_sequence, window_size=5, dt=DT)
 
         t1 = time.perf_counter()
-        print(f"    -> Metric Calculation Latency: {(t1-t0)*1000:.2f} ms")
+        print(f"    -> Metric Calculation Latency: {(t1 - t0) * 1000:.2f} ms")
 
         # Time axis for plotting in seconds
         time_axis = np.arange(len(ksm_scores)) * DT
