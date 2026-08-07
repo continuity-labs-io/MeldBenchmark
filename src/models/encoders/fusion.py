@@ -3,22 +3,25 @@ import torch.nn as nn
 
 
 class BiologicalCartridgeFusion(nn.Module):
-    """
-    Fusion Encoder for Biological Cartridge.
-
-    A 'cartridge' acts as an abstraction of a biological sample providing
-    telemetry or similar multimodal data. This encoder projects hardware data
-    to dense space and routes the boolean mask to the latent subspace.
-    """
-
     def __init__(self, d_cartridge: int, n_modalities: int, d_model: int):
         super().__init__()
         self.W_cart = nn.Linear(d_cartridge, d_model, bias=False)
         self.W_gate = nn.Linear(n_modalities, d_model, bias=True)
 
-        # THE STASIS PRIOR: Default closed (-3), opens when active (+6)
-        torch.nn.init.constant_(self.W_gate.bias, -3.0)
-        torch.nn.init.constant_(self.W_gate.weight, 6.0 / n_modalities)
+        # TRUE ORTHOGONAL SUBSPACE ROUTING PRIOR
+        half = d_model // 2
+        with torch.no_grad():
+            # 1. Absolute Stasis Default: sigmoid(-10) = 4.5e-5. 
+            # Guarantees memory survives 1000+ step voids.
+            self.W_gate.bias.fill_(-10.0)
+            self.W_gate.weight.fill_(0.0)
+            
+            # 2. Orthogonal Routing
+            # Modality 0 (Voltage) strictly controls latent dimensions 0 to 31
+            self.W_gate.weight[:half, 0] = 20.0 
+            
+            # Modality 1 (Epigenetics) strictly controls latent dimensions 32 to 63
+            self.W_gate.weight[half:, 1] = 20.0 
 
     def forward(self, x_raw: torch.Tensor, mask: torch.Tensor):
         latent_x = self.W_cart(x_raw)

@@ -22,7 +22,11 @@ class SyntheticWaddingtonDataset(Dataset):
     def __init__(self, size=100, seq_len=500):
         self.size = size
         self.seq_len = seq_len
+        # Ensure consistent biological mapping across datasets
+        rng_state = torch.get_rng_state()
+        torch.manual_seed(42)
         self.W_1 = torch.randn(1, 10)
+        torch.set_rng_state(rng_state)
 
     def __len__(self):
         return self.size

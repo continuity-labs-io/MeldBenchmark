@@ -1,5 +1,8 @@
 {
     "output": {
         "filePath": "cache/meld-benchmark-repomix.xml"
-    }
+    },
+    "include": [
+        "src/**/*.py"
+    ]
 }

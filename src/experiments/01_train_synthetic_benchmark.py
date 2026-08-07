@@ -59,7 +59,7 @@ def main():
     transformer_loss_history = []
 
     # Training Loop
-    epochs = 30
+    epochs = 50
     for epoch in range(1, epochs + 1):
         model_baseline.train()
         model_mask_aware.train()
